@@ -2,8 +2,14 @@
 #include <omnetpp.h>
 #include <typeinfo>
 #include "messages/request_vote.cc"
+#include "utilityclasses/LogEntry.h"
+
+#include <list>
+#include <string>
 
 using namespace omnetpp;
+using namespace std;
+
 
 enum ServerState {
     Leader, Follower, Candidate
@@ -16,7 +22,18 @@ class Server: public cSimpleModule {
     cMessage *heartbeatEvent;
     int votesCount = 0;
     bool hasVoted = false;
+    bool faultywhenleader;
+    bool crashed=false;
 
+    int currentTerm =0;    //persistent state on all servers
+    int votedFor=-1;
+    list<LogEntry> log = {};
+
+    int commitIndex=0;     //volatile state on all servers
+    int lastApplied=0;
+
+  //  int nextIndex[par("numservers")];   //volatile state on leaders
+   // int matchIndex[par("numservers");
 protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
@@ -26,15 +43,19 @@ private:
     void scheduleHeartbeat();
 
     void broadcast(cMessage *msg);
+    int getLastLogTerm();
+    int getLastLogIndex();
 };
 
 Define_Module(Server);
 
 void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-
+    faultywhenleader= par("faultywhenleader");
     simtime_t electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    WATCH(currentTerm);
+    WATCH(votedFor);
 }
 
 void Server::finish() {
@@ -44,9 +65,25 @@ void Server::finish() {
 }
 
 void Server::handleMessage(cMessage *msg) {
+    if(crashed){
+        delete msg;
+        return;
+    }
     if (msg == heartbeatEvent) {
         broadcast(new cMessage("Heartbeat"));
+
+        if(faultywhenleader && uniform(0,1)>0.7) { // this is useful to test what happens if a leader do not send HeartBeats to other servers anymore
+            bubble("definitely crashed");
+            crashed=true;
+            return;
+        }
         scheduleHeartbeat();
+    }
+
+    if(msg->isName("Heartbeat")){              //to implement with appendentries message
+        cancelEvent(electionTimeoutEvent);
+        simtime_t electionTimeout = par("electionTimeout");
+        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     }
 
     if (msg == electionTimeoutEvent) {
@@ -54,37 +91,55 @@ void Server::handleMessage(cMessage *msg) {
         return;
     }
 
-    cancelEvent(electionTimeoutEvent);
-
     EV << "[Server" << getIndex() << "] Message received from Server"
               << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
               << endl;
 
-    if (msg->isName("RequestVote") && !hasVoted) {
+    if (msg->isName("RequestVote") ) {
+        cancelEvent(electionTimeoutEvent);
+        RequestVote *requestvote = check_and_cast<RequestVote *>(msg);
         // Each server will vote for at most one candidate in a given term, on a first come-first-served-basis
-        send(new cMessage("Vote"), "out", msg->getArrivalGate()->getIndex());
-        hasVoted = true;
-    }
+        if(requestvote->getTerm()>currentTerm){
+
+        //denying the vote if candidate log is less up to date than voter log
+        if(requestvote->getLastLogTerm() > getLastLogTerm()  || (requestvote->getLastLogTerm() == getLastLogTerm()   && requestvote->getLastLogIndex()>=getLastLogIndex() )){
+           send(new cMessage("Vote"), "out", msg->getArrivalGate()->getIndex());
+                   votedFor=requestvote->getCandidateId();
+                   currentTerm=requestvote->getTerm();
+               }
+        }
+        simtime_t electionTimeout = par("electionTimeout");
+        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+        }
+
 
     if (msg->isName("Vote")) {
         votesCount++;
+        cancelEvent(electionTimeoutEvent);
         if (votesCount > getVectorSize() / 2) {
             currentState = Leader;
+
             scheduleHeartbeat();
+        }
+        else {
+            simtime_t electionTimeout = par("electionTimeout");
+                    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
         }
         return;
     }
 }
 
 void Server::startElection() {
-    EV << "[Server" << getIndex() << "] Start election at " << simTime()
+     currentTerm=currentTerm +1;
+
+    EV << "[Server" << getIndex() << "] Start election at " << simTime() << " , term = " << currentTerm
               << endl;
 
     currentState = Candidate;
     votesCount++;
-    hasVoted = true;
-
-    broadcast(new cMessage("RequestVote"));
+    RequestVote requestvote = RequestVote("RequestVote",currentTerm,getIndex(),getLastLogIndex(),getLastLogTerm());
+    cMessage *mextobroadcast= &requestvote;
+    broadcast(mextobroadcast);
 }
 
 void Server::scheduleHeartbeat() {
@@ -99,4 +154,24 @@ void Server::broadcast(cMessage *msg) {
         send(msg->dup(), "out", i);
     }
 }
+int Server::getLastLogIndex(){
+    int lastlogindex;
+
+        if(log.empty())lastlogindex=0;
+        else{
+            LogEntry lastentry =log.front();
+            lastlogindex=log.size();
+        }
+        return lastlogindex;
+}
+int Server::getLastLogTerm(){
+        int lastlogterm;
+        if(log.empty())  lastlogterm=0;
+        else{
+            LogEntry lastentry =log.front();
+            lastlogterm= lastentry.getLogterm();
+        }
+        return lastlogterm;
+}
+
 

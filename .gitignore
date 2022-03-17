@@ -2,3 +2,11 @@
 .settings/
 .cproject
 .project
+simulations/.qtenvrc
+src/Makefile
+src/Raft_Project.exe
+.nedexclusions
+.nedfolders
+.oppbuildspec
+
+

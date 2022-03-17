@@ -7,6 +7,7 @@ simple Server
     parameters:
         double electionTimeout @unit(ms) = default(uniform(400ms, 500ms));
         double heartbeatPeriod @unit(ms) = electionTimeout/2;
+        bool faultywhenleader = default(false);
 
         @display("i=block/process");
     gates:
