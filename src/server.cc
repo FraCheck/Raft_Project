@@ -17,7 +17,7 @@ enum ServerState {
 class Server: public cSimpleModule {
     ServerState currentState = Follower;
 
-    cMessage *electionTimeoutEvent;
+    cMessage *electionTimeoutEvent;    //  message for election timeout
     cMessage *heartbeatEvent;
     int votesCount = 0;
     bool hasVoted = false;
@@ -31,8 +31,6 @@ class Server: public cSimpleModule {
     int commitIndex = 0;     //volatile state on all servers
     int lastApplied = 0;
 
-    //  int nextIndex[par("numservers")];   //volatile state on leaders
-    // int matchIndex[par("numservers");
 protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;
