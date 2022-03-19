@@ -8,5 +8,5 @@ src/Raft_Project.exe
 .nedexclusions
 .nedfolders
 .oppbuildspec
-
-
+Makefile
+src/Raft_Project_dbg.exe
