@@ -18,7 +18,7 @@ class Server: public cSimpleModule {
     ServerState currentState = Follower;
 
     cMessage *electionTimeoutEvent;    //  message for election timeout
-    cMessage *heartbeatEvent;
+    cMessage *heartbeatEvent;          // message for heartbeat timeout
     int votesCount = 0;
     bool hasVoted = false;
     bool faultywhenleader;
