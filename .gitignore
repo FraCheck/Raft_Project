@@ -1,0 +1,5 @@
+/out/
+simulations/.qtenvrc
+src/Makefile
+src/Raft_Project
+.settings/language.settings.xml
