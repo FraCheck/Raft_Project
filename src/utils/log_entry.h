@@ -1,3 +1,6 @@
+#ifndef LOG_ENTRY_H
+#define LOG_ENTRY_H
+
 #include <iostream>
 #include <string>
 using namespace std;
@@ -43,4 +46,4 @@ class LogEntry
     }
 };
 
-
+#endif

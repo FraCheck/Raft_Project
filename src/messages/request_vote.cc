@@ -37,7 +37,6 @@ public:
     }
 
     cMessage* dup() const override {
-        return new RequestVote("RequestVote", this->term, this->candidateId,
-                this->lastLogIndex, this->lastLogTerm);
+        return new RequestVote(this->getName(),this->term,this->candidateId,this->lastLogIndex,this->lastLogTerm);
     }
 };

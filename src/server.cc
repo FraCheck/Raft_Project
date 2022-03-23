@@ -2,9 +2,9 @@
 #include <omnetpp.h>
 #include <typeinfo>
 #include "messages/request_vote.cc"
+#include "messages/append_entries.cc"
 #include "messages/request_vote_response.cc"
 #include "utils/log_entry.h"
-
 #include <list>
 #include <string>
 
@@ -20,16 +20,19 @@ class Server: public cSimpleModule {
 
     cMessage *electionTimeoutEvent;    //  message for election timeout
     cMessage *heartbeatEvent;          // message for heartbeat timeout
+
     int votesCount = 0;
     bool faultywhenleader;
     bool crashed = false;
 
-    int currentTerm = 0;    //persistent state on all servers
-    int votedFor = -1;
-    list<LogEntry> log = { };
+    // Persistent state on all servers
+    int currentTerm = 0;        // Latest term server has seen (initialized to 0 on first boot, increases monotonically)
+    int votedFor = -1;          // CandidateId that received vote in current term (or null if none)
+    list<LogEntry> log = { };   // Log entries
 
-    int commitIndex = 0;     //volatile state on all servers
-    int lastApplied = 0;
+    // Volatile state on all servers
+    int commitIndex = 0;        // Index of highest log entry known to be committed (initialized to 0, increases monotonically)
+    int lastApplied = 0;        // Index of highest log entry applied to state machine (initialized to 0, increases monotonically)
 
 protected:
     virtual void initialize() override;
@@ -62,13 +65,17 @@ void Server::finish() {
 }
 
 void Server::handleMessage(cMessage *msg) {
+
     if (crashed) {
         delete msg;
         return;
     }
     if (msg == heartbeatEvent) {
-        broadcast(new cMessage("Heartbeat"));
+        std::list<LogEntry> empty_log = { };
 
+        AppendEntries appendentries = AppendEntries("Heartbeat", currentTerm, getIndex(), getLastLogIndex(), getLastLogTerm(), empty_log, commitIndex) ;
+        cMessage *mextobroadcast = &appendentries;
+        broadcast(mextobroadcast);
         if (faultywhenleader && uniform(0, 1) > 0.7) { // this is useful to test what happens if a leader do not send HeartBeats to other servers anymore
             bubble("definitely crashed");
             crashed = true;
@@ -77,12 +84,16 @@ void Server::handleMessage(cMessage *msg) {
         scheduleHeartbeat();
     }
 
-    if (msg->isName("Heartbeat")) {    //to implement with appendentries message
-        cancelEvent(electionTimeoutEvent);
-        votedFor = -1;
 
-        simtime_t electionTimeout = par("electionTimeout");
-        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    if (msg->isName("Heartbeat")) {
+        AppendEntries *appendentries = check_and_cast<AppendEntries*>(msg);
+
+        if ((appendentries->getEntries()).empty()){
+            cancelEvent(electionTimeoutEvent);
+            simtime_t electionTimeout = par("electionTimeout");
+            scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+        }else
+            throw "Protocol Violation: received a Heartbeat message with non-null log_entries list.";
     }
 
     if (msg == electionTimeoutEvent) {

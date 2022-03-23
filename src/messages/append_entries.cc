@@ -50,9 +50,6 @@ public:
     }
 
     cMessage* dup() const override {
-        return new AppendEntries("AppendEntries", this->term, this->leaderId,
-                this->prevLogIndex, this->prevLogTerm, this->entries,
-                this->leaderCommit);
+        return new AppendEntries(this->getName(),this->term,this->leaderId,this->prevLogIndex,this->prevLogTerm,this->entries,this->leaderCommit);
     }
-
 };
