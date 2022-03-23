@@ -1,7 +1,9 @@
+#include <omnetpp.h>
+
 using namespace omnetpp;
 using namespace std;
 
-class RequetVoteResponse: public cMessage {
+class RequestVoteResponse: public cMessage {
 private:
     int term;
     bool voteGranted;
