@@ -2,6 +2,7 @@
 #include <omnetpp.h>
 #include <typeinfo>
 #include "messages/request_vote.cc"
+#include "messages/request_vote_response.cc"
 #include "utils/log_entry.h"
 
 #include <list>
@@ -20,7 +21,6 @@ class Server: public cSimpleModule {
     cMessage *electionTimeoutEvent;    //  message for election timeout
     cMessage *heartbeatEvent;          // message for heartbeat timeout
     int votesCount = 0;
-    bool hasVoted = false;
     bool faultywhenleader;
     bool crashed = false;
 
@@ -44,7 +44,7 @@ private:
     int getLastLogIndex();
 };
 
-Define_Module (Server);
+Define_Module(Server);
 
 void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
@@ -79,6 +79,8 @@ void Server::handleMessage(cMessage *msg) {
 
     if (msg->isName("Heartbeat")) {    //to implement with appendentries message
         cancelEvent(electionTimeoutEvent);
+        votedFor = -1;
+
         simtime_t electionTimeout = par("electionTimeout");
         scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     }
@@ -89,31 +91,47 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     EV << "[Server" << getIndex() << "] Message received from Server"
-            << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-            << endl;
+              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
+              << endl;
 
     if (msg->isName("RequestVote")) {
         cancelEvent(electionTimeoutEvent);
-        RequestVote *requestvote = check_and_cast<RequestVote*>(msg);
-        // Each server will vote for at most one candidate in a given term, on a first come-first-served-basis
-        if (requestvote->getTerm() > currentTerm) {
 
-            //denying the vote if candidate log is less up to date than voter log
-            if (requestvote->getLastLogTerm() > getLastLogTerm()
-                    || (requestvote->getLastLogTerm() == getLastLogTerm()
-                            && requestvote->getLastLogIndex()
+        // Each server will vote for at most one candidate in a given term,
+        // on a first come-first-served-basis
+        if (votedFor != -1)
+            return;
+
+        RequestVote *requestVote = check_and_cast<RequestVote*>(msg);
+        if (requestVote->getTerm() > currentTerm) {
+
+            // Deny the vote if candidate log is not up to date with the current one
+            if (requestVote->getLastLogTerm() > getLastLogTerm()
+                    || (requestVote->getLastLogTerm() == getLastLogTerm()
+                            && requestVote->getLastLogIndex()
                                     >= getLastLogIndex())) {
-                send(new cMessage("Vote"), "out",
+                send(new RequestVoteResponse(currentTerm, true), "out",
                         msg->getArrivalGate()->getIndex());
-                votedFor = requestvote->getCandidateId();
-                currentTerm = requestvote->getTerm();
-            }
+
+                votedFor = requestVote->getCandidateId();
+                currentTerm = requestVote->getTerm();
+            } else
+                send(new RequestVoteResponse(currentTerm, false), "out",
+                        msg->getArrivalGate()->getIndex());
         }
+
         simtime_t electionTimeout = par("electionTimeout");
         scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     }
 
-    if (msg->isName("Vote")) {
+    if (msg->isName("RequestVoteResponse")) {
+        RequestVoteResponse *response = check_and_cast<RequestVoteResponse*>(
+                msg);
+
+        if (!response->getVoteGranted())
+            // TODO: implement the correct behavior
+            return;
+
         votesCount++;
         cancelEvent(electionTimeoutEvent);
         if (votesCount > getVectorSize() / 2) {
@@ -132,10 +150,11 @@ void Server::startElection() {
     currentTerm = currentTerm + 1;
 
     EV << "[Server" << getIndex() << "] Start election at " << simTime()
-            << " , term = " << currentTerm << endl;
+              << " , term = " << currentTerm << endl;
 
     currentState = Candidate;
     votesCount++;
+    votedFor = getIndex();
     RequestVote requestvote = RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
     cMessage *mextobroadcast = &requestvote;

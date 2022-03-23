@@ -8,14 +8,21 @@ private:
     int term;
     bool voteGranted;
 public:
+    RequestVoteResponse(int term, bool voteGranted) {
+        this->setName("RequestVoteResponse");
+        this->term = term;
+        this->voteGranted = voteGranted;
+    }
+
     int getTerm() {
         return term;
     }
+
     bool getVoteGranted() {
         return voteGranted;
     }
 
     cMessage* dup() const override {
-        return new RequestVoteResponse();
+        return new RequestVoteResponse(term, voteGranted);
     }
 };

@@ -8,6 +8,12 @@ private:
     int term;
     bool success;
 public:
+    AppendEntriesResponse(int term, bool success) {
+        this->setName("AppendEntriesResponse");
+        this->term = term;
+        this->success = success;
+    }
+
     int getTerm() {
         return term;
     }
@@ -17,6 +23,6 @@ public:
     }
 
     cMessage* dup() const override {
-        return new AppendEntriesResponse();
+        return new AppendEntriesResponse(term, success);
     }
 };
