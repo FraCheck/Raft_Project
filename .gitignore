@@ -5,3 +5,4 @@ src/Raft_Project
 .settings/language.settings.xml
 src/Raft_Project_dbg.exe
 src/Raft_Project.exe
+/.vscode
