@@ -1,7 +1,7 @@
 #ifndef MESSAGES_REQUEST_VOTE_REQUEST_VOTE_RESPONSE_H_
 #define MESSAGES_REQUEST_VOTE_REQUEST_VOTE_RESPONSE_H_
-
 #include "../handable_message.h"
+
 
 class RequestVoteResponse: public HandableMessage {
 private:

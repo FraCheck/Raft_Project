@@ -14,9 +14,9 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     }
 
     server->votesCount++;
-    server->cancelEvent(electionTimeoutEvent);
+    server->cancelEvent(server->electionTimeoutEvent);
 
-    if (server->votesCount > vectorSize / 2) {
+    if (server->votesCount > server->getVectorSize() / 2) {
         server->currentState = LEADER;
 
         server->scheduleHeartbeat();

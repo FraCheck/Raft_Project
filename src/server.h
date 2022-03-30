@@ -1,20 +1,10 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include <typeinfo>
-#include <list>
-#include <string>
-
-#include "messages/append_entries/append_entries.h"
-#include "messages/append_entries/append_entries_response.h"
-#include "messages/request_vote/request_vote.h"
-#include "messages/request_vote/request_vote_response.h"
-
+#include <omnetpp.h>
 #include "utils/log_entry.h"
-
 using namespace omnetpp;
 using namespace std;
-
 enum ServerState {
     LEADER, FOLLOWER, CANDIDATE
 };

@@ -1,5 +1,5 @@
 #include "request_vote.h"
-
+#include "request_vote_response.h"
 RequestVote::RequestVote(string name, int term, int candidateId,
         int lastLogIndex, int lastLogTerm) {
     cMessage::setName(name.c_str());
@@ -10,12 +10,12 @@ RequestVote::RequestVote(string name, int term, int candidateId,
 }
 
 void RequestVote::handleOnServer(Server *server) const {
-    server->cancelEvent(electionTimeoutEvent);
+    server->cancelEvent(server->electionTimeoutEvent);
 
     // Each server will vote for at most one candidate in a given term,
     // on a first come-first-served-basis
     if (term <= server->currentTerm && server->votedFor != -1) {
-        server->send(new RequestVoteResponse(currentTerm, false), "out",
+        server->send(new RequestVoteResponse(server->currentTerm, false), "out",
                 getArrivalGate()->getIndex());
         return;
     }
@@ -31,7 +31,7 @@ void RequestVote::handleOnServer(Server *server) const {
             server->votedFor = candidateId;
             server->currentTerm = term;
         } else
-            server->send(new RequestVoteResponse(server-- > currentTerm, false),
+            server->send(new RequestVoteResponse(server->currentTerm, false),
                     "out", getArrivalGate()->getIndex());
     }
 

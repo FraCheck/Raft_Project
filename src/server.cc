@@ -1,4 +1,11 @@
 #include "server.h"
+#include "messages/append_entries/append_entries.h"
+#include "messages/append_entries/append_entries_response.h"
+#include "messages/request_vote/request_vote.h"
+#include "messages/request_vote/request_vote_response.h"
+#include <typeinfo>
+#include <list>
+#include <string>
 
 void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
@@ -25,6 +32,7 @@ void Server::handleMessage(cMessage *msg) {
         delete msg;
         return;
     }
+    if(msg->isSelfMessage()){
 
     if (msg == heartbeatEvent) {
         std::list<LogEntry> empty_log = { };
@@ -48,14 +56,16 @@ void Server::handleMessage(cMessage *msg) {
         startElection();
         return;
     }
+    }
 
-    EV << "[Server" << getIndex() << "] Message received from Server"
-              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-              << endl;
-
+    else{
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
+    }
 
+    EV << "[Server" << getIndex() << "] Message received from Server"
+                  << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
+                  << endl;
     delete msg;
 }
 

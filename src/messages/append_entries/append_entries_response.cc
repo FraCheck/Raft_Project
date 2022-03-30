@@ -1,5 +1,4 @@
 #include "append_entries_response.h"
-
 AppendEntriesResponse::AppendEntriesResponse(int term, bool success) {
     cMessage::setName("AppendEntriesResponse");
     this->term = term;

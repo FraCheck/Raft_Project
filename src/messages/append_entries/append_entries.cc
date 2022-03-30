@@ -1,4 +1,6 @@
 #include "append_entries.h"
+#include "../../utils/log_entry.h"
+
 
 AppendEntries::AppendEntries(string name, int term, int leaderId,
         int prevLogIndex, int prevLogTerm, list<LogEntry> entries,

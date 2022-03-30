@@ -2,7 +2,6 @@
 #define MESSAGES_APPEND_ENTRIES_APPEND_ENTRIES_H_
 
 #include "../handable_message.h"
-#include "../../utils/log_entry.h"
 
 using namespace omnetpp;
 using namespace std;
