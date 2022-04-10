@@ -9,7 +9,12 @@ RequestVoteResponse::RequestVoteResponse(int term, bool voteGranted) {
 void RequestVoteResponse::handleOnServer(Server *server) const {
 
     if (!voteGranted) {
-        // TODO: implement the correct behavior
+        if(term>server->currentTerm){
+                       server->currentTerm=term;
+                       server->currentState=FOLLOWER;
+                       server->votesCount=0;
+                   }
+        server->rescheduleElectionTimeout();
         return;
     }
 
@@ -18,6 +23,11 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     if (server->votesCount > server->getVectorSize() / 2) {
         server->currentState = LEADER;
+        server->currentLeader = server->getIndex();
+        for(int i =0;i<server->getVectorSize();i++){
+            server->nextIndex[i]=1;
+            server->matchIndex[i]=0;
+        }
 
         server->scheduleHeartbeat();
     } else

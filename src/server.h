@@ -3,6 +3,7 @@
 
 #include <omnetpp.h>
 #include "utils/log_entry.h"
+#include <map>
 using namespace omnetpp;
 using namespace std;
 enum ServerState {
@@ -15,6 +16,7 @@ public:
 
     cMessage *electionTimeoutEvent; // message for election timeout event
     cMessage *heartbeatEvent;       // message for heartbeat event
+    cMessage *retryAppendEntryEvent;  //message for retry appendentries to all the server not consistent with the leader log yet
 
     int votesCount = 0;
     bool faultywhenleader;
@@ -30,6 +32,9 @@ public:
     int commitIndex = 0; // Index of highest log entry known to be committed (initialized to 0, increases monotonically)
     int lastApplied = 0; // Index of highest log entry applied to state machine (initialized to 0, increases monotonically)
 
+    int *nextIndex;     // for each server, index of the next log entry  to send to that server (initialized to leader last log index + 1)
+    int *matchIndex;   //for each server, index of highest log entry known to be replicated on server(even if not committed ) (initialized to 0, increases monotonically)
+    int currentLeader; // current leader index
     void startElection();
     void scheduleHeartbeat();
     void rescheduleElectionTimeout();
