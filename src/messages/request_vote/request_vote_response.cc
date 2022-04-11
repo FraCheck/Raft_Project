@@ -1,5 +1,5 @@
 #include "request_vote_response.h"
-
+#include "../append_entries/append_entries.h"
 RequestVoteResponse::RequestVoteResponse(int term, bool voteGranted) {
     cMessage::setName("RequestVoteResponse");
     this->term = term;
@@ -29,7 +29,15 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
             server->matchIndex[i]=0;
         }
 
-        server->scheduleHeartbeat();
+        if(server->votesCount -1<= server->getVectorSize() / 2   ){
+            std::list<LogEntry> empty_log = { };
+                    AppendEntries *heartbeat = new AppendEntries("Heartbeat", server->currentTerm,
+                            server->getIndex(), server->getLastLogIndex(), server->getLastLogTerm(), empty_log,
+                            server->commitIndex);
+                            server->broadcast(heartbeat);
+                            server->scheduleHeartbeat();
+        }
+
     } else
         server->rescheduleElectionTimeout();
 

@@ -1,5 +1,6 @@
 #include "request_vote.h"
 #include "request_vote_response.h"
+#include "../append_entries/append_entries.h"
 RequestVote::RequestVote(string name, int term, int candidateId,
         int lastLogIndex, int lastLogTerm) {
     cMessage::setName(name.c_str());
@@ -44,6 +45,7 @@ void RequestVote::handleOnServer(Server *server) const {
                    server->currentTerm=term;
                    server->currentState=FOLLOWER;
                    server->votesCount=0;
+                   if(server->currentState == LEADER) server->cancelEvent(server->heartbeatEvent);
                }
     if(!(server->currentState==LEADER))server->rescheduleElectionTimeout();
 }

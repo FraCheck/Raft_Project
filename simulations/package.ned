@@ -5,8 +5,8 @@ package raft_project.simulations;
 simple Server
 {
     parameters:
-        double electionTimeout @unit(ms) = default(uniform(400ms,500ms));
-        double heartbeatPeriod @unit(ms) = default(200ms);
+       volatile double electionTimeout @unit(ms) = default(uniform(400ms,500ms));
+       volatile  double heartbeatPeriod @unit(ms) = electionTimeout/2;
         double retryAppendEntriesPeriod @unit(ms) = default(150ms);
         bool faultyWhenLeader = default(false);
 

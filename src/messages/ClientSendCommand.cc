@@ -10,7 +10,7 @@ ClientSendCommand::ClientSendCommand(string command, int idrequest,int clientId)
 void ClientSendCommand::handleOnServer(Server *server) const {
  if ((!server->currentState)==LEADER)
  {
-     server->send(new ServerReplyToClient(false, server->currentLeader,idrequest),"out", getArrivalGate()->getIndex());
+     server->send(new ServerReplyToClient(false, server->currentLeader,idrequest),"toclients", getArrivalGate()->getIndex());
      return;
  }
  bool logfound=false;
@@ -36,8 +36,7 @@ void ClientSendCommand::handleOnServer(Server *server) const {
       server->broadcast(new AppendEntries("AppendEntries", server->currentTerm,
                           server->getIndex(), server->log.size()-1, lastlogterm, {server->log.back()},
                           server->commitIndex));
-                  server->retryAppendEntryEvent = new cMessage("retryAppendEntryEvent");
-
+                      server->cancelEvent(server->retryAppendEntryEvent);
                       simtime_t appendEntryPeriod = server->par("retryAppendEntriesPeriod");
                       server->scheduleAt(simTime() + appendEntryPeriod, server->retryAppendEntryEvent);
  }

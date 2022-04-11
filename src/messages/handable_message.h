@@ -12,6 +12,9 @@ class HandableMessage: public cMessage {
 public:
     virtual void handleOnServer(Server *server) const {};
     virtual void handleOnClient(Client *client) const {};
+    void finish() {
+        delete this;
+    }
 };
 
 

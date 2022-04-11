@@ -48,14 +48,24 @@ void AppendEntries::handleOnServer(Server *server) const {
         if(!entries.empty()){
             if(server->log.size()>=this->prevLogIndex){
                  list<LogEntry> :: iterator it =       server->log.begin();
+                 if(prevLogIndex>0  ){
                  advance(it,prevLogIndex-1);
-                 LogEntry logtocheck = *it;     // finding the common entry with the leader
+                 LogEntry logtocheck = *it;
+                 // finding the common entry with the leader
                  if(logtocheck.getLogterm()==term){ //if such entry exist...
 
                 	 list<LogEntry> :: iterator tail = server->log.begin();
                 	 advance(tail,server->log.size());
+
                 	 list<LogEntry> entries_ = entries; //why doesn' t work if i put directly entries in splice below?
-                	 server->log.erase(it,tail); //deleting all entries after the common entry with the leader
+
+                	 list<LogEntry> :: iterator itrem =       server->log.begin();
+                     if(prevLogIndex<server->log.size()){
+
+                     advance(itrem,prevLogIndex);
+                	 server->log.erase(itrem,tail);   //deleting all entries after the common entry with the leader
+                     }
+
                      server->log.splice(server->log.end(),entries_); //adding new entries
                      server->send(new AppendEntriesResponse(server->currentTerm, true,server->log.size()) ,"out", getArrivalGate()->getIndex());  // no common entry found with leader
                                           return;
@@ -64,6 +74,15 @@ void AppendEntries::handleOnServer(Server *server) const {
                      server->send(new AppendEntriesResponse(server->currentTerm, false,server->log.size()) ,"out", getArrivalGate()->getIndex());  // no common entry found with leader
                      return;
                  }
+                 }
+                 else // prevLogIndex = 0 just insert new entry
+                 {
+                     list<LogEntry> entries_ = entries;
+                     server->log.splice(server->log.end(),entries_);
+                     server->send(new AppendEntriesResponse(server->currentTerm, true,server->log.size()) ,"out", getArrivalGate()->getIndex());  // no common entry found with leader
+                                                              return;
+                 }
+
             }
             else{ // no entry found at prevLogIndex
                 server->send(new AppendEntriesResponse(server->currentTerm, false,server->log.size()) ,"out", getArrivalGate()->getIndex());

@@ -23,6 +23,7 @@ void Client::finish() {
 }
 
 void Client::handleMessage(cMessage *msg) {
+    EV <<  "client index is " << getIndex()<< endl;
   if(msg->isSelfMessage()){
     if (msg ==sendCommandEvent) {
         int serverindex = uniform(0,numberofservers);

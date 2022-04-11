@@ -27,23 +27,22 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
 
 
         // update indexcommit
-        if( index>server->commitIndex && indexcount>server->getVectorSize()/2 )
+        if( index>server->commitIndex && indexcount>server->getVectorSize()/2 -1  )
                     {
                         server->commitIndex=index;
                         bool commitfound=false;
                         //sending to all clients response corresponding to new entry committed
-
-                        for(int logindex=server->commitIndex;logindex>=1 && !commitfound ;logindex--){
+                        for(int logindex=server->commitIndex - 1;logindex>=0 && !commitfound ;logindex--){
                             list<LogEntry> :: iterator it= server->log.begin();
-                              advance(it,server->commitIndex-1);
-                            LogEntry logtocheck= *it;
-                            if(logtocheck.isCommitted()){
+                              advance(it,logindex);
+
+                            if((*it).isCommitted()){
                               commitfound=true;
                             }
                             else{
-                                logtocheck.setCommitted(true);
-                                server->send( new ServerReplyToClient( true,server->getIndex(),logtocheck.getRequestId())
-                                                        ,"toclients", logtocheck.getClientId());
+                               (*it).setCommitted(true);
+                                server->send( new ServerReplyToClient( true,server->getIndex(),(*it).getRequestId())
+                                                        ,"toclients", (*it).getClientId());
 
                             }
 

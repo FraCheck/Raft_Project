@@ -14,15 +14,12 @@ void Server::initialize() {
     retryAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     faultywhenleader = par("faultyWhenLeader");
-    electionTimeout = par("electionTimeout");
-    simtime_t electionTimeout = par("electionTimeout");
-    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
-
-
+    rescheduleElectionTimeout();
     WATCH(currentTerm);
     WATCH(currentState);
     WATCH(votedFor);
     WATCH(electionTimeout);
+
 }
 
 void Server::finish() {
@@ -30,19 +27,12 @@ void Server::finish() {
     cancelEvent(electionTimeoutEvent);
     cancelEvent(retryAppendEntryEvent);
     cancelEvent(heartbeatEvent);
-    delete electionTimeoutEvent;
-    delete retryAppendEntryEvent;
-    delete heartbeatEvent;
-
-
-
     EV << "[Server" << getIndex() << "] Votes count is " << votesCount << endl;
 
 
 }
 
 void Server::handleMessage(cMessage *msg) {
-
     if (crashed) {
         delete msg;
         return;
@@ -60,7 +50,6 @@ void Server::handleMessage(cMessage *msg) {
         if (faultywhenleader && uniform(0, 1) > 0.7) {
             bubble("definitely crashed");
             crashed = true;
-
             return;
         }
 
@@ -71,13 +60,12 @@ void Server::handleMessage(cMessage *msg) {
 
     if (msg == electionTimeoutEvent) {
         startElection();
-
         return;
     }
     if(msg==retryAppendEntryEvent){  //resend to all servers the log they need to be consitent with the leader
-        cancelEvent(retryAppendEntryEvent);
+
         bool allserversconsistent=true;
-        for(int serverindex=0;serverindex<getVectorSize();serverindex++){
+        for(int serverindex=0;serverindex<gateSize("out");serverindex++){
             if(log.size()>=nextIndex[serverindex]){
                 allserversconsistent=false;
                 list<LogEntry> :: iterator it= log.begin();
@@ -99,21 +87,22 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     else{
-        EV << "[Server" << getIndex() << "] Message received from Server"
-                            << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-                            << endl;
+
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
     }
+    EV << "[Server" << getIndex() << "] Message received from Server"
+                                << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
+                                << endl;
+
 
 
 
 }
 
 void Server::startElection() {
-    electionTimeout = uniform(400, 500);
+    electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
-
     currentTerm = currentTerm + 1;
     votesCount = 0; // Reset votes count from previous election
     EV << "[Server" << getIndex() << "] Start election at " << simTime()
@@ -129,7 +118,6 @@ void Server::startElection() {
 }
 
 void Server::scheduleHeartbeat() {
-    cancelEvent(heartbeatEvent);
     simtime_t heartbeatPeriod = par("heartbeatPeriod");
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
