@@ -8,10 +8,10 @@
 #include <string>
 
 void Server::initialize() {
-    nextIndex=  new int(getVectorSize());
-    matchIndex= new int(getVectorSize());
+    nextIndex = new int(getVectorSize());
+    matchIndex = new int(getVectorSize());
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    retryAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+    resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     faultywhenleader = par("faultyWhenLeader");
     rescheduleElectionTimeout();
@@ -23,13 +23,10 @@ void Server::initialize() {
 }
 
 void Server::finish() {
-
     cancelEvent(electionTimeoutEvent);
-    cancelEvent(retryAppendEntryEvent);
+    cancelEvent(resendAppendEntryEvent);
     cancelEvent(heartbeatEvent);
     EV << "[Server" << getIndex() << "] Votes count is " << votesCount << endl;
-
-
 }
 
 void Server::handleMessage(cMessage *msg) {
@@ -37,66 +34,68 @@ void Server::handleMessage(cMessage *msg) {
         delete msg;
         return;
     }
-    if(msg->isSelfMessage()){
 
-    if (msg == heartbeatEvent) {
-        std::list<LogEntry> empty_log = { };
-        AppendEntries *heartbeat = new AppendEntries("Heartbeat", currentTerm,
-                getIndex(), getLastLogIndex(), getLastLogTerm(), empty_log,
-                commitIndex);
-        broadcast(heartbeat);
+    if (msg->isSelfMessage()) {
+        if (msg == heartbeatEvent) {
+            std::list<LogEntry> empty_log = { };
+            AppendEntries *heartbeat = new AppendEntries("Heartbeat",
+                    currentTerm, getIndex(), getLastLogIndex(),
+                    getLastLogTerm(), empty_log, commitIndex);
+            broadcast(heartbeat);
 
-        // Test what happens if a leader do not send HeartBeats to other servers anymore
-        if (faultywhenleader && uniform(0, 1) > 0.7) {
-            bubble("definitely crashed");
-            crashed = true;
+            // Test what happens if a leader do not send HeartBeats to other servers anymore
+            if (faultywhenleader && uniform(0, 1) > 0.7) {
+                bubble("definitely crashed");
+                crashed = true;
+                return;
+            }
+
+            scheduleHeartbeat();
             return;
         }
 
-        scheduleHeartbeat();
+        if (msg == electionTimeoutEvent) {
+            startElection();
+            return;
+        }
 
-        return;
-    }
+        // Re-send to all servers the log they need
+        // in order to be consistent with the leader
+        if (msg == resendAppendEntryEvent) {
 
-    if (msg == electionTimeoutEvent) {
-        startElection();
-        return;
-    }
-    if(msg==retryAppendEntryEvent){  //resend to all servers the log they need to be consitent with the leader
-
-        bool allserversconsistent=true;
-        for(int serverindex=0;serverindex<gateSize("out");serverindex++){
-            if(log.size()>=nextIndex[serverindex]){
-                allserversconsistent=false;
-                list<LogEntry> :: iterator it= log.begin();
-                        advance(it,nextIndex[serverindex]-1);
-                       list<LogEntry> tosend = {*it};
-                      send( new AppendEntries("AppendEntries", currentTerm,
-                                       getIndex(), getLastLogIndex(), getLastLogTerm(),tosend,
-                                       commitIndex),"out", serverindex);
+            bool allserversconsistent = true;
+            for (int serverindex = 0; serverindex < gateSize("out");
+                    serverindex++) {
+                if (log.size() >= nextIndex[serverindex]) {
+                    allserversconsistent = false;
+                    list<LogEntry>::iterator it = log.begin();
+                    advance(it, nextIndex[serverindex] - 1);
+                    list<LogEntry> tosend = { *it };
+                    send(
+                            new AppendEntries("AppendEntries", currentTerm,
+                                    getIndex(), getLastLogIndex(),
+                                    getLastLogTerm(), tosend, commitIndex),
+                            "out", serverindex);
+                }
             }
+            if (!allserversconsistent) { //retry appendentries until all servers are consistent with the log of the leader
+
+                simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
+                scheduleAt(simTime() + appendEntryPeriod,
+                        resendAppendEntryEvent);
+            }
+            return;
         }
-        if(!allserversconsistent) { //retry appendentries until all servers are consistent with the log of the leader
-
-
-                             simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
-                             scheduleAt(simTime() + appendEntryPeriod, retryAppendEntryEvent);
-        }
-    return;
-    }
     }
 
-    else{
+    else {
 
-    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-    handableMsg->handleOnServer(this);
+        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+        handableMsg->handleOnServer(this);
     }
     EV << "[Server" << getIndex() << "] Message received from Server"
-                                << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-                                << endl;
-
-
-
+              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
+              << endl;
 
 }
 
@@ -113,7 +112,8 @@ void Server::startElection() {
     votedFor = getIndex();
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
-// cMessage *mextobroadcast = &requestvote;
+
+    // cMessage *mextobroadcast = &requestvote;
     broadcast(requestvote);
 }
 
@@ -122,19 +122,31 @@ void Server::scheduleHeartbeat() {
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
 
+void Server::cancelHeartbeat() {
+    cancelEvent(heartbeatEvent);
+}
+
 void Server::rescheduleElectionTimeout() {
     cancelEvent(electionTimeoutEvent);
     simtime_t electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
 }
 
+void Server::stopElectionTimeout() {
+    cancelEvent(electionTimeoutEvent);
+}
+
+void Server::scheduleResendAppendEntries() {
+    simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
+    scheduleAt(simTime() + appendEntryPeriod, resendAppendEntryEvent);
+}
+void Server::cancelResendAppendEntries() {
+    cancelEvent(resendAppendEntryEvent);
+}
+
 void Server::broadcast(cMessage *msg) {
-
-    for (int i = 0;  i < gateSize("out"); i++) {
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
-
-    }
-
 }
 
 int Server::getLastLogIndex() {

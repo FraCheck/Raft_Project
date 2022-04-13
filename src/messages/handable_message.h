@@ -3,20 +3,22 @@
 
 #include "omnetpp.h"
 #include "../server.h"
-#include "../Client.h"
-
+#include "../client.h"
 
 using namespace omnetpp;
 
 class HandableMessage: public cMessage {
 public:
-    virtual void handleOnServer(Server *server) const {};
-    virtual void handleOnClient(Client *client) const {};
+    virtual void handleOnServer(Server *server) const {
+    }
+    ;
+    virtual void handleOnClient(Client *client) const {
+    }
+    ;
+
     void finish() {
         delete this;
     }
 };
-
-
 
 #endif

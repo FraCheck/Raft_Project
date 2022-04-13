@@ -5,8 +5,8 @@ package raft_project.simulations;
 simple Server
 {
     parameters:
-       volatile double electionTimeout @unit(ms) = default(uniform(400ms,500ms));
-       volatile  double heartbeatPeriod @unit(ms) = electionTimeout/2;
+        volatile double electionTimeout @unit(ms) = default(uniform(400ms,500ms));
+        volatile double heartbeatPeriod @unit(ms) = electionTimeout/2;
         double retryAppendEntriesPeriod @unit(ms) = default(150ms);
         bool faultyWhenLeader = default(false);
 
@@ -17,22 +17,23 @@ simple Server
         input fromclients[];
         output toclients[];
 }
-simple Client{
-    parameters: 
+simple Client
+{
+    parameters:
         double sendCommandTimeout @unit(ms) = default(uniform(800ms, 1000ms));
         double resendCommandTimeout @unit(ms) = default(500ms);
         int numServers = default(5);
-         @display("i=block/routing");
-gates:
-    input in[];
-    output out[];
+        @display("i=block/routing");
+    gates:
+        input in[];
+        output out[];
 }
 
 network Raft
 {
     parameters:
         int numServers = default(5);
-        int numClients =default(1);
+        int numClients = default(1);
 
         // The system should satisfies the following timing requirement:
 		// broadcastTime << electionTimeout << MTBF
@@ -52,9 +53,8 @@ network Raft
             server[i].out++ --> Channel --> server[j].in++;
             server[i].in++ <-- Channel <-- server[j].out++;
         }
-        for i=0..numClients-1, for j=0..numServers-1{
-        client[i].out++ --> Channel --> server[j].fromclients++;
-        client[i].in++ <-- Channel <-- server[j].toclients++;
-        
+        for i=0..numClients-1, for j=0..numServers-1 {
+            client[i].out++ --> Channel --> server[j].fromclients++;
+            client[i].in++ <-- Channel <-- server[j].toclients++;
         }
 }
