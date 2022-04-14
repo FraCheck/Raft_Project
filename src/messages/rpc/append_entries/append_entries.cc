@@ -1,44 +1,17 @@
-#include "append_entries.h"
-#include "append_entries_response.h"
-#include "../../utils/log_entry.h"
 #include<iterator>
 #include <list>
-
-AppendEntries::AppendEntries(string name, int term, int leaderId,
-        int prevLogIndex, int prevLogTerm, list<LogEntry> entries,
-        int leaderCommit) {
-    cMessage::setName(name.c_str());
-    this->term = term;
-    this->leaderId = leaderId;
-    this->prevLogIndex = prevLogIndex;
-    this->prevLogTerm = prevLogTerm;
-    this->entries = entries;
-    this->leaderCommit = leaderCommit;
-}
+#include "../../rpc/append_entries/append_entries.h"
+#include "../../rpc/append_entries/append_entries_response.h"
+#include "../../../utils/log_entry.h"
 
 void AppendEntries::handleOnServer(Server *server) const {
     if (server->currentState != LEADER)
         server->rescheduleElectionTimeout();
 
-    // Reject AppendEntries with old term
-    if (term < server->currentTerm) {
-        AppendEntriesResponse *response = new AppendEntriesResponse(
-                server->currentTerm, false, server->log.size());
-        server->send(response, "out", getArrivalGate()->getIndex());
-        return;
-    }
-
     // Manage HeartBeats
     if (entries.empty()) {
         if (server->currentState == CANDIDATE && term >= server->currentTerm) {
             // Accept the HeartBeat sender as Leader
-            server->currentState = FOLLOWER;
-            server->currentTerm = term;
-            server->votesCount = 0;
-        }
-
-        if (term > server->currentTerm) {
-            // Revert to follower (if leader) and update current term
             server->currentState = FOLLOWER;
             server->currentTerm = term;
             server->votesCount = 0;
@@ -71,7 +44,7 @@ void AppendEntries::handleOnServer(Server *server) const {
         LogEntry logToCheck = *it;
 
         // Find the common entry with the leader
-        if (logToCheck.getLogterm() == term) { //if such entry exist...
+        if (logToCheck.getLogTerm() == term) { //if such entry exist...
 
             list<LogEntry>::iterator tail = server->log.begin();
             advance(tail, server->log.size());
@@ -118,36 +91,12 @@ void AppendEntries::handleOnServer(Server *server) const {
             server->commitIndex = indexoflastentry;
         else
             server->commitIndex = leaderCommit;
-
     }
-
 }
 
-cMessage* AppendEntries::dup() const {
-    return new AppendEntries(getName(), term, leaderId, prevLogIndex,
-            prevLogTerm, entries, leaderCommit);
+void AppendEntries::buildAndSendResponse(Server *server, bool success) const {
+    AppendEntriesResponse *response = new AppendEntriesResponse(
+            server->currentTerm, success, server->log.size());
+    server->send(response, "out", getArrivalGate()->getIndex());
 }
 
-int AppendEntries::getTerm() const {
-    return term;
-}
-
-int AppendEntries::getLeaderId() const {
-    return leaderId;
-}
-
-int AppendEntries::getPrevLogIndex() const {
-    return prevLogIndex;
-}
-
-int AppendEntries::getPrevLogTerm() const {
-    return prevLogTerm;
-}
-
-list<LogEntry> AppendEntries::getEntries() const {
-    return entries;
-}
-
-int AppendEntries::getLeaderCommit() const {
-    return leaderCommit;
-}

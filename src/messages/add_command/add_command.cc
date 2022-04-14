@@ -1,6 +1,7 @@
 #include "add_command.h"
 #include "add_command_response.h"
-#include "../append_entries/append_entries.h"
+
+#include "../rpc/append_entries/append_entries.h"
 
 AddCommand::AddCommand(string command, int idrequest, int clientId) {
     cMessage::setName("AddCommand");
@@ -39,7 +40,7 @@ void AddCommand::handleOnServer(Server *server) const {
     if (server->log.size() > 1) {
         list<LogEntry>::iterator prevLogIt = server->log.begin();
         advance(prevLogIt, server->log.size() - 2);
-        lastLogTerm = (*prevLogIt).getLogterm();
+        lastLogTerm = (*prevLogIt).getLogTerm();
     } else
         lastLogTerm = 0;
 

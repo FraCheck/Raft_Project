@@ -39,7 +39,7 @@ class LogEntry
         this->entry = entry;
     }
 
-    int getLogterm() const {
+    int getLogTerm() const {
         return logterm;
     }
 

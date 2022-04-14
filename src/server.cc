@@ -1,11 +1,11 @@
 #include "server.h"
-#include "messages/append_entries/append_entries.h"
-#include "messages/append_entries/append_entries_response.h"
-#include "messages/request_vote/request_vote.h"
-#include "messages/request_vote/request_vote_response.h"
 #include <typeinfo>
 #include <list>
 #include <string>
+#include "messages/rpc/append_entries/append_entries.h"
+#include "messages/rpc/append_entries/append_entries_response.h"
+#include "messages/rpc/request_vote/request_vote.h"
+#include "messages/rpc/request_vote/request_vote_response.h"
 
 void Server::initialize() {
     nextIndex = new int(getVectorSize());
@@ -19,7 +19,6 @@ void Server::initialize() {
     WATCH(currentState);
     WATCH(votedFor);
     WATCH(electionTimeout);
-
 }
 
 void Server::finish() {
@@ -35,6 +34,7 @@ void Server::handleMessage(cMessage *msg) {
         return;
     }
 
+    // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
             std::list<LogEntry> empty_log = { };
@@ -44,7 +44,7 @@ void Server::handleMessage(cMessage *msg) {
             broadcast(heartbeat);
 
             // Test what happens if a leader do not send HeartBeats to other servers anymore
-            if (faultywhenleader && uniform(0, 1) > 0.7) {
+            if (faultywhenleader && uniform(0, 1) > 0.6) {
                 bubble("definitely crashed");
                 crashed = true;
                 return;
@@ -62,23 +62,22 @@ void Server::handleMessage(cMessage *msg) {
         // Re-send to all servers the log they need
         // in order to be consistent with the leader
         if (msg == resendAppendEntryEvent) {
-
-            bool allserversconsistent = true;
-            for (int serverindex = 0; serverindex < gateSize("out");
-                    serverindex++) {
-                if (log.size() >= nextIndex[serverindex]) {
-                    allserversconsistent = false;
+            bool allServersConsistent = true;
+            for (int serverIndex = 0; serverIndex < gateSize("out");
+                    serverIndex++) {
+                if (log.size() >= nextIndex[serverIndex]) {
+                    allServersConsistent = false;
                     list<LogEntry>::iterator it = log.begin();
-                    advance(it, nextIndex[serverindex] - 1);
+                    advance(it, nextIndex[serverIndex] - 1);
                     list<LogEntry> tosend = { *it };
                     send(
                             new AppendEntries("AppendEntries", currentTerm,
                                     getIndex(), getLastLogIndex(),
                                     getLastLogTerm(), tosend, commitIndex),
-                            "out", serverindex);
+                            "out", serverIndex);
                 }
             }
-            if (!allserversconsistent) { //retry appendentries until all servers are consistent with the log of the leader
+            if (!allServersConsistent) { //retry appendentries until all servers are consistent with the log of the leader
 
                 simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
                 scheduleAt(simTime() + appendEntryPeriod,
@@ -86,17 +85,47 @@ void Server::handleMessage(cMessage *msg) {
             }
             return;
         }
+
+        return;
     }
 
-    else {
+    // *** EXTERNAL MESSAGES ***
+    // All messages from this point on are sent from other servers/clients
 
-        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-        handableMsg->handleOnServer(this);
-    }
     EV << "[Server" << getIndex() << "] Message received from Server"
               << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
               << endl;
 
+    // Generic behavior for RPC messages
+    if (dynamic_cast<RPC*>(msg) != nullptr) {
+        RPC *rpc = check_and_cast<RPC*>(msg);
+
+        // "If RPC request or response contains term T > currentTerm:
+        // set currentTerm = T, convert to follower"
+        if (rpc->term > currentTerm) {
+            currentTerm = rpc->term;
+            votedFor = -1;
+            votesCount = 0;
+
+            if (currentState == LEADER)
+                cancelHeartbeat();
+            currentState = FOLLOWER;
+        }
+    }
+
+    // Generic behavior for RPCRequest messages
+    if (dynamic_cast<RPCRequest*>(msg) != nullptr) {
+        RPCRequest *rpc = check_and_cast<RPCRequest*>(msg);
+
+        // "If a server receives a request with a stale term
+        // number, it rejects the request"
+        if (rpc->term < currentTerm) {
+            rpc->buildAndSendResponse(this, false);
+        }
+    }
+
+    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+    handableMsg->handleOnServer(this);
 }
 
 void Server::startElection() {
@@ -113,11 +142,12 @@ void Server::startElection() {
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
 
-    // cMessage *mextobroadcast = &requestvote;
+// cMessage *mextobroadcast = &requestvote;
     broadcast(requestvote);
 }
 
 void Server::scheduleHeartbeat() {
+    cancelEvent(heartbeatEvent);
     simtime_t heartbeatPeriod = par("heartbeatPeriod");
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
@@ -128,6 +158,7 @@ void Server::cancelHeartbeat() {
 
 void Server::rescheduleElectionTimeout() {
     cancelEvent(electionTimeoutEvent);
+
     simtime_t electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
 }
@@ -150,24 +181,20 @@ void Server::broadcast(cMessage *msg) {
 }
 
 int Server::getLastLogIndex() {
-    int lastlogindex;
-
-    if (log.empty())
-        lastlogindex = 0;
-    else {
-        LogEntry lastentry = log.front();
-        lastlogindex = log.size();
-    }
+    int lastlogindex = log.size();
     return lastlogindex;
 }
+
 int Server::getLastLogTerm() {
     int lastlogterm;
+
     if (log.empty())
         lastlogterm = 0;
     else {
         LogEntry lastentry = log.front();
-        lastlogterm = lastentry.getLogterm();
+        lastlogterm = lastentry.getLogTerm();
     }
+
     return lastlogterm;
 }
 

@@ -1,24 +1,9 @@
-#include "append_entries.h"
-#include "append_entries_response.h"
-#include "../add_command/add_command_response.h"
-
-AppendEntriesResponse::AppendEntriesResponse(int term, bool success,
-        int index) {
-    cMessage::setName("AppendEntriesResponse");
-    this->term = term;
-    this->success = success;
-    this->index = index;
-}
+#include "../append_entries/append_entries.h"
+#include "../append_entries/append_entries_response.h"
+#include "../../add_command/add_command_response.h"
 
 void AppendEntriesResponse::handleOnServer(Server *server) const {
-
-    if (term > server->currentTerm) {
-        server->currentTerm = term;
-        server->currentState = FOLLOWER;
-        server->votesCount = 0;
-        server->rescheduleElectionTimeout();
-    }
-    if (success) {
+    if (result) {
         //appendentries succeded , updating matchindex
         if (index > server->matchIndex[getArrivalGate()->getIndex()])
             server->matchIndex[getArrivalGate()->getIndex()] = index;
@@ -48,11 +33,8 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
                             new AddCommandResponse(true, server->getIndex(),
                                     (*it).getRequestId()), "toclients",
                             (*it).getClientId());
-
                 }
-
             }
-
         }
 
         //appendentries succeded , updating nextindex
@@ -72,7 +54,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
             list<LogEntry>::iterator prevlogit = server->log.begin();
             advance(prevlogit,
                     server->nextIndex[getArrivalGate()->getIndex()] - 2);
-            lastlogterm = (*prevlogit).getLogterm();
+            lastlogterm = (*prevlogit).getLogTerm();
         } else
             lastlogterm = 0;
         server->send(
@@ -85,16 +67,3 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
     }
 
 }
-
-cMessage* AppendEntriesResponse::dup() const {
-    return new AppendEntriesResponse(term, success, index);
-}
-
-int AppendEntriesResponse::getTerm() const {
-    return term;
-}
-
-bool AppendEntriesResponse::getSuccess() const {
-    return success;
-}
-

@@ -1,14 +1,9 @@
-#include "request_vote_response.h"
-#include "../append_entries/append_entries.h"
-RequestVoteResponse::RequestVoteResponse(int term, bool voteGranted) {
-    cMessage::setName("RequestVoteResponse");
-    this->term = term;
-    this->voteGranted = voteGranted;
-}
+#include "../../rpc/request_vote/request_vote_response.h"
+#include "../../rpc/append_entries/append_entries.h"
 
 void RequestVoteResponse::handleOnServer(Server *server) const {
 
-    if (!voteGranted) {
+    if (!result) {
         if (term > server->currentTerm) {
             server->currentTerm = term;
             server->currentState = FOLLOWER;
@@ -44,16 +39,3 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     return;
 }
-
-cMessage* RequestVoteResponse::dup() const {
-    return new RequestVoteResponse(term, voteGranted);
-}
-
-int RequestVoteResponse::getTerm() const {
-    return term;
-}
-
-bool RequestVoteResponse::getVoteGranted() const {
-    return voteGranted;
-}
-
