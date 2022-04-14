@@ -2,9 +2,7 @@
 #include "../../rpc/request_vote/request_vote_response.h"
 
 void RequestVote::handleOnServer(Server *server) const {
-    server->stopElectionTimeout();
-    if (server->currentState != LEADER)
-        server->rescheduleElectionTimeout();
+
 
     // "Each server will vote for at most one candidate in a given term,
     // on a first come-first-served-basis"

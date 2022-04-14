@@ -3,33 +3,31 @@
 
 #include <iostream>
 #include <string>
+
 using namespace std;
+
 int square(int);
 
-class LogEntry
-{
-  private:
-   int logterm;
-   string entry;
-   bool committed;
-   int requestId;
-   int clientId;
-   int index;
+class LogEntry {
+private:
+    int logterm;
+    string entry;
+    bool committed;
+    int requestId;
+    int clientId;
+    int index;
 
-  public:
-    LogEntry(int logterm,string entry,int requestId,int clientId,int index)
-    {
-        this->logterm=logterm;
-        this->entry= entry;
-        this->committed=false;
-        this->requestId=requestId;
-        this->clientId=clientId;
-        this->index=index;
+public:
+    LogEntry(int logterm, string entry, int requestId, int clientId,
+            int index) {
+        this->logterm = logterm;
+        this->entry = entry;
+        this->committed = false;
+        this->requestId = requestId;
+        this->clientId = clientId;
+        this->index = index;
 
     }
-
-
-
 
     string getEntry() const {
         return entry;

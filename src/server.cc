@@ -10,11 +10,15 @@
 void Server::initialize() {
     nextIndex = new int(getVectorSize());
     matchIndex = new int(getVectorSize());
+
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
+
     faultywhenleader = par("faultyWhenLeader");
+
     rescheduleElectionTimeout();
+
     WATCH(currentTerm);
     WATCH(currentState);
     WATCH(votedFor);
@@ -25,7 +29,6 @@ void Server::finish() {
     cancelEvent(electionTimeoutEvent);
     cancelEvent(resendAppendEntryEvent);
     cancelEvent(heartbeatEvent);
-    EV << "[Server" << getIndex() << "] Votes count is " << votesCount << endl;
 }
 
 void Server::handleMessage(cMessage *msg) {
@@ -117,6 +120,10 @@ void Server::handleMessage(cMessage *msg) {
     if (dynamic_cast<RPCRequest*>(msg) != nullptr) {
         RPCRequest *rpc = check_and_cast<RPCRequest*>(msg);
 
+        stopElectionTimeout();
+        if (currentState != LEADER)
+            rescheduleElectionTimeout();
+
         // "If a server receives a request with a stale term
         // number, it rejects the request"
         if (rpc->term < currentTerm) {
@@ -133,16 +140,16 @@ void Server::startElection() {
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     currentTerm = currentTerm + 1;
     votesCount = 0; // Reset votes count from previous election
+
     EV << "[Server" << getIndex() << "] Start election at " << simTime()
               << " , term = " << currentTerm << endl;
 
     currentState = CANDIDATE;
     votesCount++;
     votedFor = getIndex();
+
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
-
-// cMessage *mextobroadcast = &requestvote;
     broadcast(requestvote);
 }
 

@@ -4,7 +4,7 @@
 
 void AppendEntriesResponse::handleOnServer(Server *server) const {
     if (result) {
-        //appendentries succeded , updating matchindex
+        // AppendEntries succeeded, update matchIndex
         if (index > server->matchIndex[getArrivalGate()->getIndex()])
             server->matchIndex[getArrivalGate()->getIndex()] = index;
 
@@ -14,7 +14,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
                 indexcount++;
         }
 
-        // update indexcommit
+        // Update indexCommit
         if (index > server->commitIndex
                 && indexcount > server->getVectorSize() / 2 - 1) {
             server->commitIndex = index;
@@ -37,13 +37,13 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
             }
         }
 
-        //appendentries succeded , updating nextindex
+        // AppendEntries succeeded, update nextIndex
         if (server->nextIndex[getArrivalGate()->getIndex()]
                 <= server->log.size())
             server->nextIndex[getArrivalGate()->getIndex()] =
                     server->nextIndex[getArrivalGate()->getIndex()] + 1;
 
-    } else { // appendentries failed, adjust next index and retry appendentries
+    } else { // AppendEntries failed, adjust nextIndex and retry
         server->nextIndex[getArrivalGate()->getIndex()] =
                 server->nextIndex[getArrivalGate()->getIndex()] - 1;
         list<LogEntry>::iterator it = server->log.begin();
