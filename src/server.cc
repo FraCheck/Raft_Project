@@ -1,263 +1,173 @@
-#include <string.h>
-#include <omnetpp.h>
+#include "server.h"
+#include "messages/append_entries/append_entries.h"
+#include "messages/append_entries/append_entries_response.h"
+#include "messages/request_vote/request_vote.h"
+#include "messages/request_vote/request_vote_response.h"
 #include <typeinfo>
-#include "messages/request_vote.cc"
-#include "messages/append_entries.cc"
-#include "messages/request_vote_response.cc"
-#include "utils/log_entry.h"
 #include <list>
 #include <string>
 
-using namespace omnetpp;
-using namespace std;
-
-enum ServerState
-{
-    LEADER,
-    FOLLOWER,
-    CANDIDATE
-};
-
-class Server : public cSimpleModule
-{
-    ServerState currentState = FOLLOWER;
-
-    cMessage *electionTimeoutEvent; //  message for election timeout
-    cMessage *heartbeatEvent;       // message for heartbeat timeout
-
-    int votesCount = 0;
-    bool faultywhenleader;
-    bool crashed = false;
-    simtime_t electionTimeout;
-
-    // Persistent state on all servers
-    int currentTerm = 0;     // Latest term server has seen (initialized to 0 on first boot, increases monotonically)
-    int votedFor = -1;       // CandidateId that received vote in current term (or null if none)
-    list<LogEntry> log = {}; // Log entries
-
-    // Volatile state on all servers
-    int commitIndex = 0; // Index of highest log entry known to be committed (initialized to 0, increases monotonically)
-    int lastApplied = 0; // Index of highest log entry applied to state machine (initialized to 0, increases monotonically)
-
-protected:
-    virtual void initialize() override;
-    virtual void handleMessage(cMessage *msg) override;
-    virtual void finish() override;
-
-private:
-    void startElection();
-    void scheduleHeartbeat();
-
-    void broadcast(cMessage *msg);
-    int getLastLogTerm();
-    int getLastLogIndex();
-};
-
-Define_Module(Server);
-
-void Server::initialize()
-{
+void Server::initialize() {
+    nextIndex = new int(getVectorSize());
+    matchIndex = new int(getVectorSize());
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    faultywhenleader = par("faultywhenleader");
-    electionTimeout = par("electionTimeout");
-    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+    heartbeatEvent = new cMessage("heartbeatEvent");
+    faultywhenleader = par("faultyWhenLeader");
+    rescheduleElectionTimeout();
     WATCH(currentTerm);
     WATCH(currentState);
     WATCH(votedFor);
     WATCH(electionTimeout);
+
 }
 
-void Server::finish()
-{
+void Server::finish() {
     cancelEvent(electionTimeoutEvent);
-
+    cancelEvent(resendAppendEntryEvent);
+    cancelEvent(heartbeatEvent);
     EV << "[Server" << getIndex() << "] Votes count is " << votesCount << endl;
 }
 
-void Server::handleMessage(cMessage *msg)
-{
-
-    if (crashed)
-    {
+void Server::handleMessage(cMessage *msg) {
+    if (crashed) {
         delete msg;
         return;
     }
-    if (msg == heartbeatEvent)
-    {
 
-        std::list<LogEntry> empty_log = {};
+    if (msg->isSelfMessage()) {
+        if (msg == heartbeatEvent) {
+            std::list<LogEntry> empty_log = { };
+            AppendEntries *heartbeat = new AppendEntries("Heartbeat",
+                    currentTerm, getIndex(), getLastLogIndex(),
+                    getLastLogTerm(), empty_log, commitIndex);
+            broadcast(heartbeat);
 
-        AppendEntries *appendentries = new AppendEntries("Heartbeat", currentTerm, getIndex(), getLastLogIndex(), getLastLogTerm(), empty_log, commitIndex);
-        broadcast(appendentries);
-
-        if (faultywhenleader && uniform(0, 1) > 0.7)
-        { // this is useful to test what happens if a leader do not send HeartBeats to other servers anymore
-            bubble("definitely crashed");
-            crashed = true;
-            return;
-        }
-        scheduleHeartbeat();
-    }
-
-    if (msg->isName("Heartbeat"))
-    {
-
-        AppendEntries *heartbeat = check_and_cast<AppendEntries *>(msg);
-
-        // Protocol integrity check: an heartbeat shoud have empty log entries
-        if (!heartbeat->getEntries().empty())
-            throw "Protocol Violation: received an Heartbeat message with non-null log_entries list.";
-
-        // Received an heartbeat while being Follower: reschedule electionTimeout
-        if (currentState == FOLLOWER)
-        {
-            cancelEvent(electionTimeoutEvent);
-            simtime_t electionTimeout = par("electionTimeout");
-            scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
-        }
-
-        // Receieved an heartbeat while being Candidate: compare the terms
-        // and accept heartbeat sender as Leader if its term > my currentTerm
-        if (currentState == CANDIDATE && heartbeat->getTerm() >= currentTerm)
-        {
-            currentState = FOLLOWER;
-            currentTerm = heartbeat->getTerm();
-            votesCount = 0;
-            votedFor = heartbeat->getLeaderId(); // Update who the server voted for with the recognized Leader
-        }
-
-        delete msg;
-    }
-
-    if (msg == electionTimeoutEvent)
-    {
-        startElection();
-        return;
-    }
-
-    EV << "[Server" << getIndex() << "] Message received from Server"
-       << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-       << endl;
-
-    if (msg->isName("RequestVote"))
-    {
-        cancelEvent(electionTimeoutEvent);
-        RequestVote *requestVote = check_and_cast<RequestVote *>(msg);
-        // Each server will vote for at most one candidate in a given term,
-        // on a first come-first-served-basis
-        if (requestVote->getTerm() <= currentTerm && votedFor != -1)
-        {
-            send(new RequestVoteResponse(currentTerm, false), "out",
-                 msg->getArrivalGate()->getIndex());
-            return;
-        }
-
-        if (requestVote->getTerm() > currentTerm)
-        {
-
-            // Deny the vote if candidate log is not up to date with the current one
-            if (requestVote->getLastLogTerm() > getLastLogTerm() || (requestVote->getLastLogTerm() == getLastLogTerm() && requestVote->getLastLogIndex() >= getLastLogIndex()))
-            {
-                send(new RequestVoteResponse(currentTerm, true), "out",
-                     msg->getArrivalGate()->getIndex());
-
-                votedFor = requestVote->getCandidateId();
-                currentTerm = requestVote->getTerm();
+            // Test what happens if a leader do not send HeartBeats to other servers anymore
+            if (faultywhenleader && uniform(0, 1) > 0.7) {
+                bubble("definitely crashed");
+                crashed = true;
+                return;
             }
-            else
-                send(new RequestVoteResponse(currentTerm, false), "out",
-                     msg->getArrivalGate()->getIndex());
-        }
-
-        simtime_t electionTimeout = par("electionTimeout");
-        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
-        delete msg;
-    }
-
-    if (msg->isName("RequestVoteResponse"))
-    {
-        RequestVoteResponse *response = check_and_cast<RequestVoteResponse *>(
-            msg);
-
-        if (!response->getVoteGranted())
-            // TODO: implement the correct behavior
-            return;
-
-        votesCount++;
-        cancelEvent(electionTimeoutEvent);
-        if (votesCount > getVectorSize() / 2)
-        {
-            currentState = LEADER;
 
             scheduleHeartbeat();
+            return;
         }
-        else
-        {
-            simtime_t electionTimeout = par("electionTimeout");
-            scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+
+        if (msg == electionTimeoutEvent) {
+            startElection();
+            return;
         }
-        return;
+
+        // Re-send to all servers the log they need
+        // in order to be consistent with the leader
+        if (msg == resendAppendEntryEvent) {
+
+            bool allserversconsistent = true;
+            for (int serverindex = 0; serverindex < gateSize("out");
+                    serverindex++) {
+                if (log.size() >= nextIndex[serverindex]) {
+                    allserversconsistent = false;
+                    list<LogEntry>::iterator it = log.begin();
+                    advance(it, nextIndex[serverindex] - 1);
+                    list<LogEntry> tosend = { *it };
+                    send(
+                            new AppendEntries("AppendEntries", currentTerm,
+                                    getIndex(), getLastLogIndex(),
+                                    getLastLogTerm(), tosend, commitIndex),
+                            "out", serverindex);
+                }
+            }
+            if (!allserversconsistent) { //retry appendentries until all servers are consistent with the log of the leader
+
+                simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
+                scheduleAt(simTime() + appendEntryPeriod,
+                        resendAppendEntryEvent);
+            }
+            return;
+        }
     }
+
+    else {
+
+        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+        handableMsg->handleOnServer(this);
+    }
+    EV << "[Server" << getIndex() << "] Message received from Server"
+              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
+              << endl;
+
 }
 
-void Server::startElection()
-{
-    cancelEvent(electionTimeoutEvent);
-    electionTimeout = uniform(400, 500);
+void Server::startElection() {
+    electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
-
     currentTerm = currentTerm + 1;
     votesCount = 0; // Reset votes count from previous election
     EV << "[Server" << getIndex() << "] Start election at " << simTime()
-       << " , term = " << currentTerm << endl;
+              << " , term = " << currentTerm << endl;
 
     currentState = CANDIDATE;
     votesCount++;
     votedFor = getIndex();
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
-                                               getIndex(), getLastLogIndex(), getLastLogTerm());
+            getIndex(), getLastLogIndex(), getLastLogTerm());
+
     // cMessage *mextobroadcast = &requestvote;
     broadcast(requestvote);
 }
 
-void Server::scheduleHeartbeat()
-{
-    heartbeatEvent = new cMessage("heartbeatEvent");
-
+void Server::scheduleHeartbeat() {
     simtime_t heartbeatPeriod = par("heartbeatPeriod");
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
 
-void Server::broadcast(cMessage *msg)
-{
-    for (int i = 0; i < gateSize("out"); i++)
-    {
-        send(msg->dup(), "out", i);
-    }
+void Server::cancelHeartbeat() {
+    cancelEvent(heartbeatEvent);
 }
 
-int Server::getLastLogIndex()
-{
+void Server::rescheduleElectionTimeout() {
+    cancelEvent(electionTimeoutEvent);
+    simtime_t electionTimeout = par("electionTimeout");
+    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+}
+
+void Server::stopElectionTimeout() {
+    cancelEvent(electionTimeoutEvent);
+}
+
+void Server::scheduleResendAppendEntries() {
+    simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
+    scheduleAt(simTime() + appendEntryPeriod, resendAppendEntryEvent);
+}
+void Server::cancelResendAppendEntries() {
+    cancelEvent(resendAppendEntryEvent);
+}
+
+void Server::broadcast(cMessage *msg) {
+    for (int i = 0; i < gateSize("out"); i++)
+        send(msg->dup(), "out", i);
+}
+
+int Server::getLastLogIndex() {
     int lastlogindex;
 
     if (log.empty())
         lastlogindex = 0;
-    else
-    {
+    else {
         LogEntry lastentry = log.front();
         lastlogindex = log.size();
     }
     return lastlogindex;
 }
-int Server::getLastLogTerm()
-{
+int Server::getLastLogTerm() {
     int lastlogterm;
     if (log.empty())
         lastlogterm = 0;
-    else
-    {
+    else {
         LogEntry lastentry = log.front();
         lastlogterm = lastentry.getLogterm();
     }
     return lastlogterm;
 }
+
