@@ -8,11 +8,23 @@ using namespace std;
 
 class AppendEntries: public HandableMessage {
 private:
+    // Leader’s term
     int term;
+
+    // Used by followers to redirect clients
     int leaderId;
+
+    // Index of the LogEntry immediately preceding the new ones
     int prevLogIndex;
+
+    // Term of prevLogIndex entry
     int prevLogTerm;
+
+    // LogEntries to store (empty for HeartBeat;
+    // may send more than one for efficiency)
     list<LogEntry> entries;
+
+    // Leader’s commitIndex
     int leaderCommit;
 public:
     AppendEntries(string name, int term, int leaderId, int prevLogIndex,

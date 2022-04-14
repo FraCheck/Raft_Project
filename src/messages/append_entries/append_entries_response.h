@@ -7,9 +7,10 @@ class AppendEntriesResponse: public HandableMessage {
 private:
     int term;
     bool success;
+    int index;
 
 public:
-    AppendEntriesResponse(int term, bool success);
+    AppendEntriesResponse(int term, bool success,int index);
 
     void handleOnServer(Server* server) const override;
     cMessage* dup() const override;

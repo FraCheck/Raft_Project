@@ -1,5 +1,6 @@
 #include "request_vote.h"
 #include "request_vote_response.h"
+#include "../append_entries/append_entries.h"
 RequestVote::RequestVote(string name, int term, int candidateId,
         int lastLogIndex, int lastLogTerm) {
     cMessage::setName(name.c_str());
@@ -10,17 +11,23 @@ RequestVote::RequestVote(string name, int term, int candidateId,
 }
 
 void RequestVote::handleOnServer(Server *server) const {
-    server->cancelEvent(server->electionTimeoutEvent);
+
+    server->stopElectionTimeout();
 
     // Each server will vote for at most one candidate in a given term,
     // on a first come-first-served-basis
-    if (term <= server->currentTerm && server->votedFor != -1) {
+    if (term < server->currentTerm) {
         server->send(new RequestVoteResponse(server->currentTerm, false), "out",
                 getArrivalGate()->getIndex());
+        if (!(server->currentState == LEADER))
+            server->rescheduleElectionTimeout();
         return;
     }
 
-    if (term > server->currentTerm) {
+    if (term > server->currentTerm
+            || (term == server->currentTerm
+                    && (server->votedFor == -1
+                            || server->votedFor == this->candidateId))) {
         // Deny the vote if candidate log is not up to date with the current one
         if (term > server->getLastLogTerm()
                 || (lastLogTerm == server->getLastLogTerm()
@@ -29,13 +36,23 @@ void RequestVote::handleOnServer(Server *server) const {
                     "out", getArrivalGate()->getIndex());
 
             server->votedFor = candidateId;
-            server->currentTerm = term;
+
         } else
             server->send(new RequestVoteResponse(server->currentTerm, false),
                     "out", getArrivalGate()->getIndex());
+    } else {
+        server->send(new RequestVoteResponse(server->currentTerm, false), "out",
+                getArrivalGate()->getIndex());
     }
-
-    server->rescheduleElectionTimeout();
+    if (term > server->currentTerm) {
+        server->currentTerm = term;
+        server->currentState = FOLLOWER;
+        server->votesCount = 0;
+        if (server->currentState == LEADER)
+            server->cancelHeartbeat();
+    }
+    if (!(server->currentState == LEADER))
+        server->rescheduleElectionTimeout();
 }
 
 cMessage* RequestVote::dup() const {

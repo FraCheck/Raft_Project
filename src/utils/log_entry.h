@@ -12,22 +12,24 @@ class LogEntry
    int logterm;
    string entry;
    bool committed;
+   int requestId;
+   int clientId;
+   int index;
 
   public:
-    LogEntry(int logterm,string entry)
+    LogEntry(int logterm,string entry,int requestId,int clientId,int index)
     {
         this->logterm=logterm;
         this->entry= entry;
         this->committed=false;
+        this->requestId=requestId;
+        this->clientId=clientId;
+        this->index=index;
+
     }
 
-    bool isCommitted() const {
-        return committed;
-    }
 
-    void setCommitted(bool committed) {
-        this->committed = committed;
-    }
+
 
     string getEntry() const {
         return entry;
@@ -43,6 +45,26 @@ class LogEntry
 
     void setLogterm(int logterm) {
         this->logterm = logterm;
+    }
+
+    int getClientId() const {
+        return clientId;
+    }
+
+    bool isCommitted() const {
+        return committed;
+    }
+
+    void setCommitted(bool committed) {
+        this->committed = committed;
+    }
+
+    int getRequestId() const {
+        return requestId;
+    }
+
+    int getIndex() const {
+        return index;
     }
 };
 
