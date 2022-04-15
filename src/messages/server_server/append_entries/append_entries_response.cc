@@ -1,6 +1,7 @@
-#include "../append_entries/append_entries.h"
-#include "../append_entries/append_entries_response.h"
-#include "../../add_command/add_command_response.h"
+#include "../../server_server/append_entries/append_entries_response.h"
+
+#include "../../client_server/add_command_response.h"
+#include "../../server_server/append_entries/append_entries.h"
 
 void AppendEntriesResponse::handleOnServer(Server *server) const {
     if (result) {

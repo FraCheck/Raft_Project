@@ -1,7 +1,7 @@
 #include<iterator>
 #include <list>
-#include "../../rpc/append_entries/append_entries.h"
-#include "../../rpc/append_entries/append_entries_response.h"
+#include "../../server_server/append_entries/append_entries.h"
+#include "../../server_server/append_entries/append_entries_response.h"
 #include "../../../utils/log_entry.h"
 
 void AppendEntries::handleOnServer(Server *server) const {
@@ -20,7 +20,7 @@ void AppendEntries::handleOnServer(Server *server) const {
         return;
     }
 
-    // Check the trivial case (server log is empty)
+    // Check the trivial case: server log is empty
     if (prevLogIndex == 0) {
 
         // Why doesn't work if i put directly entries in splice below?
@@ -33,11 +33,19 @@ void AppendEntries::handleOnServer(Server *server) const {
 
     // Server log is NOT empty
 
+    // "Conflicting entries in follower logs will be overwritten
+    // with entries from the leader’s log. [...]
+    // To bring a follower’s log into consistency with its own,
+    // the leader must find the latest log entry where the two
+    // logs agree, delete any entries in the follower’s log after
+    // that point, and send the follower all of the leader’s entries
+    // after that point."
+
+    // Find the latest LogEntry such that the log agrees with the server one
     list<LogEntry>::iterator it = server->log.begin();
     advance(it, prevLogIndex - 1);
     LogEntry logToCheck = *it;
 
-    // Find the common entry with the leader
     if (logToCheck.getLogTerm() == term) { //if such entry exist...
 
         list<LogEntry>::iterator tail = server->log.begin();

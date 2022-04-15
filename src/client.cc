@@ -1,7 +1,8 @@
 #include <ctime>
 #include <random>
 #include "client.h"
-#include "messages/add_command/add_command.h"
+
+#include "messages/client_server/add_command.h"
 
 void Client::initialize() {
     numberOfServers = par("numServers");

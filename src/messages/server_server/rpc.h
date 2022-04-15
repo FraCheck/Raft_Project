@@ -1,5 +1,5 @@
-#ifndef MESSAGES_RPC_RPC_H_
-#define MESSAGES_RPC_RPC_H_
+#ifndef MESSAGES_SERVER_SERVER_RPC_H_
+#define MESSAGES_SERVER_SERVER_RPC_H_
 
 #include "../../server.h"
 

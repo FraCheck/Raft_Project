@@ -2,10 +2,11 @@
 #include <typeinfo>
 #include <list>
 #include <string>
-#include "messages/rpc/append_entries/append_entries.h"
-#include "messages/rpc/append_entries/append_entries_response.h"
-#include "messages/rpc/request_vote/request_vote.h"
-#include "messages/rpc/request_vote/request_vote_response.h"
+
+#include "messages/server_server/append_entries/append_entries.h"
+#include "messages/server_server/append_entries/append_entries_response.h"
+#include "messages/server_server/request_vote/request_vote.h"
+#include "messages/server_server/request_vote/request_vote_response.h"
 
 void Server::initialize() {
     nextIndex = new int(getVectorSize());

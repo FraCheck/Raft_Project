@@ -1,5 +1,6 @@
-#include "add_command_response.h"
-#include "add_command.h"
+#include "../client_server/add_command_response.h"
+
+#include "../client_server/add_command.h"
 
 AddCommandResponse::AddCommandResponse(bool success, int leaderId,
         int requestId) {

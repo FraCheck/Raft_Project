@@ -10,18 +10,29 @@ int square(int);
 
 class LogEntry {
 private:
-    int logterm;
-    string entry;
-    bool committed;
-    int requestId;
-    int clientId;
+    // A state machine command
+    string command;
+
+    // Term during which the command was received by the leader
+    int term;
+
+    // Position of the LogEntry in the log
     int index;
 
+    // True if the LogEntry is replicated on the majority of the servers
+    bool committed;
+
+    //
+    int requestId;
+
+    //
+    int clientId;
+
 public:
-    LogEntry(int logterm, string entry, int requestId, int clientId,
+    LogEntry(int logterm, string command, int requestId, int clientId,
             int index) {
-        this->logterm = logterm;
-        this->entry = entry;
+        this->term = logterm;
+        this->command = command;
         this->committed = false;
         this->requestId = requestId;
         this->clientId = clientId;
@@ -30,19 +41,19 @@ public:
     }
 
     string getEntry() const {
-        return entry;
+        return command;
     }
 
     void setEntry(string entry) {
-        this->entry = entry;
+        this->command = entry;
     }
 
     int getLogTerm() const {
-        return logterm;
+        return term;
     }
 
     void setLogterm(int logterm) {
-        this->logterm = logterm;
+        this->term = logterm;
     }
 
     int getClientId() const {

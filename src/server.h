@@ -15,7 +15,7 @@ class Server: public cSimpleModule {
 public:
     ServerState currentState = FOLLOWER;
 
-    // *** PERSISTENT STATE ***
+    // *** PERSISTENT STATE ON ALL SERVERS ***
     // (Updated on stable storage before responding to RPCs)
 
     // Latest term "seen" by the server (increases monotonically)
@@ -27,8 +27,7 @@ public:
     // Log entries
     list<LogEntry> log = { };
 
-    // *** VOLATILE STATE ***
-    // (Reinitialized after each election)
+    // *** VOLATILE STATE ON ALL SERVERS ***
 
     // Index of the last log entry known to be committed
     // (increases monotonically)
@@ -38,11 +37,14 @@ public:
     // (increases monotonically)
     int lastApplied = 0;
 
-    // Index of the next log entry to send to that server
+    // *** VOLATILE STATE ON LEADERS ***
+    // (Reinitialized after each election)
+
+    // For each server, index of the next LogEntry to send
     // (initialized to leader last log index + 1)
     int *nextIndex;
 
-    // Index of the last log entry known to be replicated on server(even if not committed )
+    // For each server, index of the last log entry known to be replicated
     // (initialized to 0, increases monotonically)
     int *matchIndex;
 

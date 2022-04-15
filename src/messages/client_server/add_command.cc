@@ -1,14 +1,6 @@
-#include "add_command.h"
-#include "add_command_response.h"
-
-#include "../rpc/append_entries/append_entries.h"
-
-AddCommand::AddCommand(string command, int idrequest, int clientId) {
-    cMessage::setName("AddCommand");
-    this->command = command;
-    this->requestId = idrequest;
-    this->clientId = clientId;
-}
+#include "../client_server/add_command.h"
+#include "../client_server/add_command_response.h"
+#include "../server_server/append_entries/append_entries.h"
 
 void AddCommand::handleOnServer(Server *server) const {
     if (server->currentState != LEADER) {
@@ -21,17 +13,19 @@ void AddCommand::handleOnServer(Server *server) const {
     for (int index = 0; index < server->log.size(); index++) {
         list<LogEntry>::iterator it = server->log.begin();
         advance(it, server->commitIndex - 1);
+
         LogEntry logToCheck = *it;
         if (logToCheck.getRequestId() == requestId) {
 
-            // LogEntry found: reply to client
+            // LogEntry found: check if committed
             if (logToCheck.isCommitted())
                 buildAndSendResponse(server, true);
+
             return;
         }
     }
 
-    // LogEntry not found: update the log
+    // LogEntry not yet stored: update the log
     LogEntry *newEntry = new LogEntry(server->currentTerm, command, requestId,
             clientId, server->log.size() + 1);
     server->log.push_back(*newEntry);
@@ -50,6 +44,10 @@ void AddCommand::handleOnServer(Server *server) const {
             lastLogTerm, { server->log.back() }, server->commitIndex);
     server->broadcast(request);
 
+    // "If followers crash or run slowly, or if network packets are lost,
+    // the leader retries AppendEntries RPCs indefinitely
+    // until all followers eventually store all log entries."
+
     server->cancelResendAppendEntries();
     server->scheduleResendAppendEntries();
 }
@@ -58,9 +56,5 @@ void AddCommand::buildAndSendResponse(Server *server, bool result) const {
     AddCommandResponse *response = new AddCommandResponse(result,
             server->currentLeader, requestId);
     server->send(response, "toclients", getArrivalGate()->getIndex());
-}
-
-cMessage* AddCommand::dup() const {
-    return new AddCommand(command, requestId, clientId);
 }
 

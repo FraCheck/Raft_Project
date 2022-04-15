@@ -1,5 +1,6 @@
-#include "../../rpc/request_vote/request_vote.h"
-#include "../../rpc/request_vote/request_vote_response.h"
+#include "../../server_server/request_vote/request_vote.h"
+
+#include "../../server_server/request_vote/request_vote_response.h"
 
 void RequestVote::handleOnServer(Server *server) const {
 

@@ -2,7 +2,7 @@
 #define MESSAGES_REQUEST_VOTE_REQUEST_VOTE_H_
 
 #include "../../handable_message.h"
-#include "../rpc.h"
+#include "../../server_server/rpc.h"
 
 using namespace omnetpp;
 using namespace std;
