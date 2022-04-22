@@ -16,8 +16,7 @@ void Client::finish() {
 }
 
 void Client::handleMessage(cMessage *msg) {
-    EV << "client index is " << getIndex() << endl;
-
+    // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == sendCommandEvent) {
             // Select randomly the recipient
@@ -26,11 +25,11 @@ void Client::handleMessage(cMessage *msg) {
             // Generate the requestId
             // unique id from 2 numbers x,y -> z z -> x,y  z = (x+y)(x+y+1)/2 + y
             // good if client doesn't crash , if it crashes it is necessary to give him a new index, or  another unique serial number algorithm that supports failures has to be implemented
-            lastRequestId = (getIndex() + numberOfRequests)
+            lastCommandId = (getIndex() + numberOfRequests)
                     * (getIndex() + numberOfRequests + 1) / 2;
 
             lastCommand = buildRandomString(5);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
             resendCommandEvent = new cMessage("ResendCommandEvent");
             numberOfRequests++;
@@ -40,15 +39,17 @@ void Client::handleMessage(cMessage *msg) {
 
         if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
 
             scheduleResendCommand();
         }
-    } else {
-        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-        handableMsg->handleOnClient(this);
+
+        return;
     }
+
+    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+    handableMsg->handleOnClient(this);
 }
 
 void Client::scheduleSendCommand() {

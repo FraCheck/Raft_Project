@@ -8,10 +8,14 @@ class RequestVoteResponse: public HandableMessage, public RPCResponse {
 public:
     RequestVoteResponse(int term, bool voteGranted) :
             RPCResponse(term, voteGranted) {
-        cMessage::setName(voteGranted ? "TRUE" : "FALSE");
     }
 
     void handleOnServer(Server *server) const override;
+
+    const char* getDisplayString() const override {
+        return RPCResponse::result ?
+                "b=14,14,oval,green,black,1.2" : "b=14,14,oval,red,black,1.2";
+    }
 
     cMessage* dup() const override {
         return new RequestVoteResponse(term, result);

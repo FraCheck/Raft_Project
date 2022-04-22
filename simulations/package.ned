@@ -9,8 +9,6 @@ simple Server
         volatile double heartbeatPeriod @unit(ms) = electionTimeout/2;
         double retryAppendEntriesPeriod @unit(ms) = default(150ms);
         bool faultyWhenLeader = default(false);
-
-        @display("i=block/process");
     gates:
         input in[];
         output out[];
@@ -23,7 +21,7 @@ simple Client
         double sendCommandTimeout @unit(ms) = default(uniform(800ms, 1000ms));
         double resendCommandTimeout @unit(ms) = default(500ms);
         int numServers = default(5);
-        @display("i=block/routing");
+        @display("i=block/source");
     gates:
         input in[];
         output out[];

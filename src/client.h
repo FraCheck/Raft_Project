@@ -10,7 +10,7 @@ using namespace std;
 class Client: public cSimpleModule {
 public:
     int numberOfServers;
-    int lastRequestId;
+    int lastCommandId;
     int numberOfRequests;
     string lastCommand;
 

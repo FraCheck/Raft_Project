@@ -1,70 +1,74 @@
-#include "../../server_server/append_entries/append_entries_response.h"
-
 #include "../../client_server/add_command_response.h"
-#include "../../server_server/append_entries/append_entries.h"
+#include "../append_entries/append_entries.h"
+#include "../append_entries/append_entries_response.h"
 
 void AppendEntriesResponse::handleOnServer(Server *server) const {
-    if (result) {
-        // AppendEntries succeeded, update matchIndex
-        if (index > server->matchIndex[getArrivalGate()->getIndex()])
-            server->matchIndex[getArrivalGate()->getIndex()] = index;
+    int senderIndex = getArrivalGate()->getIndex();
 
-        int indexcount = 0;
-        for (int i = 0; i < server->getVectorSize(); i++) {
-            if (server->matchIndex[i] >= index)
-                indexcount++;
-        }
+    if (!result) {
+        // "If AppendEntries fails because of log inconsistency:
+        // decrement nextIndex and retry."
 
-        // Update indexCommit
-        if (index > server->commitIndex
-                && indexcount > server->getVectorSize() / 2 - 1) {
-            server->commitIndex = index;
-            bool commitfound = false;
-            //sending to all clients response corresponding to new entry committed
-            for (int logindex = server->commitIndex - 1;
-                    logindex >= 0 && !commitfound; logindex--) {
-                list<LogEntry>::iterator it = server->log.begin();
-                advance(it, logindex);
+        server->nextIndex[senderIndex]--;
 
-                if ((*it).isCommitted()) {
-                    commitfound = true;
-                } else {
-                    (*it).setCommitted(true);
-                    server->send(
-                            new AddCommandResponse(true, server->getIndex(),
-                                    (*it).getRequestId()), "toclients",
-                            (*it).getClientId());
-                }
-            }
-        }
+        int logEntryToSendIndex = server->nextIndex[senderIndex];
+        LogEntry logEntry = server->log->getFromIndex(logEntryToSendIndex);
+        LogEntry prevLogEntry = server->log->getFromIndex(
+                logEntryToSendIndex - 1);
 
-        // AppendEntries succeeded, update nextIndex
-        if (server->nextIndex[getArrivalGate()->getIndex()]
-                <= server->log.size())
-            server->nextIndex[getArrivalGate()->getIndex()] =
-                    server->nextIndex[getArrivalGate()->getIndex()] + 1;
+        AppendEntries *request = new AppendEntries("AppendEntries",
+                server->currentTerm, server->getIndex(), prevLogEntry.index,
+                prevLogEntry.term, { logEntry }, server->commitIndex);
 
-    } else { // AppendEntries failed, adjust nextIndex and retry
-        server->nextIndex[getArrivalGate()->getIndex()] =
-                server->nextIndex[getArrivalGate()->getIndex()] - 1;
-        list<LogEntry>::iterator it = server->log.begin();
-        advance(it, server->nextIndex[getArrivalGate()->getIndex()] - 1);
-        list<LogEntry> tosend = { *it };
-        int lastlogterm;
-        if (server->log.size() > 1) {
-            list<LogEntry>::iterator prevlogit = server->log.begin();
-            advance(prevlogit,
-                    server->nextIndex[getArrivalGate()->getIndex()] - 2);
-            lastlogterm = (*prevlogit).getLogTerm();
-        } else
-            lastlogterm = 0;
-        server->send(
-                new AppendEntries("AppendEntries", server->currentTerm,
-                        server->getIndex(),
-                        server->nextIndex[getArrivalGate()->getIndex()] - 1,
-                        lastlogterm, tosend, server->commitIndex), "out",
-                getArrivalGate()->getIndex());
-
+        server->send(request, "out", senderIndex);
+        return;
     }
 
+    // "If successful: update nextIndex and matchIndex for follower."
+
+    server->matchIndex[senderIndex] = lastLogIndex;
+    server->nextIndex[senderIndex] = lastLogIndex + 1;
+
+    server->logNextAndMatchIndexes();
+
+    // Check if commitIndex should be updated
+
+    int replicationCount = 0;
+    for (int i = 0; i < server->getVectorSize(); i++) {
+        if (server->matchIndex[i] >= lastLogIndex)
+            replicationCount++;
+    }
+
+    EV << "Replication count for log " << lastLogIndex << " is "
+              << replicationCount << endl;
+
+    EV << "Old commitIndex" << server->commitIndex << endl;
+
+    if (replicationCount > server->getVectorSize() / 2) {
+        server->commitIndex = lastLogIndex;
+
+        EV << "commitIndex updated to " << server->commitIndex << endl;
+    }
+
+    // "When the entry has been safely replicated, the leader applies
+    // the entry to its state machine and returns the result of that
+    // execution to the client."
+
+    for (int logIndex = server->commitIndex; logIndex > 0; logIndex--) {
+        LogEntry logEntry = server->log->getFromIndex(logIndex);
+        if (logEntry.isCommitted)
+            break;
+
+        EV << "Entry " << logIndex << " isCommitted = " << logEntry.isCommitted
+                  << endl;
+
+        // Set entries as committed
+        server->log->commit(logIndex);
+
+        // Send to client response corresponding to new entry committed
+        AddCommandResponse *response = new AddCommandResponse(true,
+                server->getIndex(), logEntry.commandId);
+        server->send(response, "toclients", logEntry.clientId);
+
+    }
 }

@@ -7,11 +7,9 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
+#include "utils/printer.h"
 
 void Server::initialize() {
-    nextIndex = new int(getVectorSize());
-    matchIndex = new int(getVectorSize());
-
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
@@ -21,7 +19,7 @@ void Server::initialize() {
     rescheduleElectionTimeout();
 
     WATCH(currentTerm);
-    WATCH(currentState);
+    WATCH(state);
     WATCH(votedFor);
     WATCH(electionTimeout);
 }
@@ -41,16 +39,17 @@ void Server::handleMessage(cMessage *msg) {
     // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
-            std::list<LogEntry> empty_log = { };
             AppendEntries *heartbeat = new AppendEntries("Heartbeat",
                     currentTerm, getIndex(), getLastLogIndex(),
-                    getLastLogTerm(), empty_log, commitIndex);
+                    getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
 
-            // Test what happens if a leader do not send HeartBeats to other servers anymore
+            // Test what happens if a leader do not send HeartBeats anymore
             if (faultywhenleader && uniform(0, 1) > 0.6) {
                 bubble("definitely crashed");
                 crashed = true;
+                cDisplayString &dispStr = getDisplayString();
+                dispStr.parse("i=block/process");
                 return;
             }
 
@@ -67,18 +66,15 @@ void Server::handleMessage(cMessage *msg) {
         // in order to be consistent with the leader
         if (msg == resendAppendEntryEvent) {
             bool allServersConsistent = true;
-            for (int serverIndex = 0; serverIndex < gateSize("out");
-                    serverIndex++) {
-                if (log.size() >= nextIndex[serverIndex]) {
+            for (int i = 0; i < gateSize("out"); i++) {
+                if (log->size() >= nextIndex[i]) {
                     allServersConsistent = false;
-                    list<LogEntry>::iterator it = log.begin();
-                    advance(it, nextIndex[serverIndex] - 1);
-                    list<LogEntry> tosend = { *it };
-                    send(
-                            new AppendEntries("AppendEntries", currentTerm,
-                                    getIndex(), getLastLogIndex(),
-                                    getLastLogTerm(), tosend, commitIndex),
-                            "out", serverIndex);
+
+                    AppendEntries *request = new AppendEntries("AppendEntries",
+                            currentTerm, getIndex(), getLastLogIndex(),
+                            getLastLogTerm(),
+                            { log->getFromIndex(nextIndex[i]) }, commitIndex);
+                    send(request, "out", i);
                 }
             }
             if (!allServersConsistent) { //retry appendentries until all servers are consistent with the log of the leader
@@ -96,10 +92,6 @@ void Server::handleMessage(cMessage *msg) {
     // *** EXTERNAL MESSAGES ***
     // All messages from this point on are sent from other servers/clients
 
-    EV << "[Server" << getIndex() << "] Message received from Server"
-              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-              << endl;
-
     // Generic behavior for RPC messages
     if (dynamic_cast<RPC*>(msg) != nullptr) {
         RPC *rpc = check_and_cast<RPC*>(msg);
@@ -111,9 +103,9 @@ void Server::handleMessage(cMessage *msg) {
             votedFor = -1;
             votesCount = 0;
 
-            if (currentState == LEADER)
+            if (state == LEADER)
                 cancelHeartbeat();
-            currentState = FOLLOWER;
+            state = FOLLOWER;
         }
     }
 
@@ -122,7 +114,7 @@ void Server::handleMessage(cMessage *msg) {
         RPCRequest *rpc = check_and_cast<RPCRequest*>(msg);
 
         stopElectionTimeout();
-        if (currentState != LEADER)
+        if (state != LEADER)
             rescheduleElectionTimeout();
 
         // "If a server receives a request with a stale term
@@ -145,7 +137,7 @@ void Server::startElection() {
     EV << "[Server" << getIndex() << "] Start election at " << simTime()
               << " , term = " << currentTerm << endl;
 
-    currentState = CANDIDATE;
+    state = CANDIDATE;
     votesCount++;
     votedFor = getIndex();
 
@@ -176,6 +168,8 @@ void Server::stopElectionTimeout() {
 }
 
 void Server::scheduleResendAppendEntries() {
+    cancelEvent(resendAppendEntryEvent);
+
     simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
     scheduleAt(simTime() + appendEntryPeriod, resendAppendEntryEvent);
 }
@@ -188,21 +182,23 @@ void Server::broadcast(cMessage *msg) {
         send(msg->dup(), "out", i);
 }
 
-int Server::getLastLogIndex() {
-    int lastlogindex = log.size();
-    return lastlogindex;
+int Server::getLastLogTerm() {
+    if (log->size() == 0)
+        return 0;
+
+    return log->getLast().term;
+
 }
 
-int Server::getLastLogTerm() {
-    int lastlogterm;
+int Server::getLastLogIndex() {
+    if (log->size() == 0)
+        return 0;
 
-    if (log.empty())
-        lastlogterm = 0;
-    else {
-        LogEntry lastentry = log.front();
-        lastlogterm = lastentry.getLogTerm();
-    }
+    return log->getLast().index;
+}
 
-    return lastlogterm;
+void Server::logNextAndMatchIndexes() {
+    EV << "nextIndex: " << printElements(nextIndex, getVectorSize()) << endl;
+    EV << "matchIndex: " << printElements(matchIndex, getVectorSize()) << endl;
 }
 
