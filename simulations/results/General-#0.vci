@@ -1,0 +1,32 @@
+file 89998 1651136792                                           
+version 2
+run General-0-20220428-11:05:42-7144
+attr configname General
+attr datetime 20220428-11:05:42
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network Raft
+attr processid 7144
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param Raft.numServers 4
+param Raft.numClients 2
+param Raft.client[*].numServers 5
+
+vector 0 Raft.client[0] commandResponseTime:vector ETV
+attr interpolationmode linear
+attr title "Total response time of client request, vector"
+attr unit s
+vector 1 Raft.client[1] commandResponseTime:vector ETV
+attr interpolationmode linear
+attr title "Total response time of client request, vector"
+attr unit s
+0	771 45282 38 47043 943.084337399391 980802.956037914272 1040 0.015488135024 0.046464405072 43.568123822513 1.8823566162154
+1	46053 43943 49 47020 968.899613223088 980507.420128225632 1012 0.015488135024 0.046464405072 28.03352439344 0.83191190837711
+

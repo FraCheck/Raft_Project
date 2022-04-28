@@ -1,0 +1,76 @@
+version 2
+run General-0-20220428-11:05:42-7144
+attr configname General
+attr datetime 20220428-11:05:42
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network Raft
+attr processid 7144
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param Raft.numServers 4
+param Raft.numClients 2
+param Raft.client[*].numServers 5
+
+statistic Raft.client[0] commandResponseTime:stats
+field count 1040
+field mean 0.041892426752416
+field stddev 0.0074186106947113
+field min 0.015488135024
+field max 0.046464405072
+field sum 43.568123822513
+field sqrsum 1.8823566162154
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[0] commandResponseTime:mean 0.041892426752416
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[0] commandResponseTime:max 0.046464405072
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+statistic Raft.client[1] commandResponseTime:stats
+field count 1012
+field mean 0.027701111060712
+field stddev 0.0073993166559163
+field min 0.015488135024
+field max 0.046464405072
+field sum 28.03352439344
+field sqrsum 0.83191190837711
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[1] commandResponseTime:mean 0.027701111060712
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[1] commandResponseTime:max 0.046464405072
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+scalar Raft consensusTime:mean nan
+attr interpolationmode none
+attr title "Time to required reach consensus, mean"
+attr unit s
+scalar Raft consensusTime:max nan
+attr interpolationmode none
+attr title "Time to required reach consensus, max"
+attr unit s
+scalar Raft messagesNumToConsensus:timeavg nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, timeavg"
+scalar Raft messagesNumToConsensus:max nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, max"
+scalar Raft messagesNumToConsensus:mean nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, mean"
+

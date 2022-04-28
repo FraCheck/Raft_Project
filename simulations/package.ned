@@ -22,6 +22,11 @@ simple Client
         double resendCommandTimeout @unit(ms) = default(500ms);
         int numServers = default(5);
         @display("i=block/source");
+        
+        @signal[commandResponseTime](type="simtime_t");
+               
+        @statistic[commandResponseTime](title="Total response time of client request";unit=s;record=vector,stats,mean,max;interpolationmode=linear);
+        
     gates:
         input in[];
         output out[];
@@ -37,7 +42,14 @@ network Raft
 		// broadcastTime << electionTimeout << MTBF
         double broadcastTime @unit(ms) = default(uniform(10ms, 20ms));
         double MTBF @unit(d) = default(uniform(100d, 200d));
-
+		
+		// TO-DO SIGNALS AND STATISTICS
+		@signal[serverMessageSent](type="int");
+		@signal[consensusTime](type="simtime_t");
+		@signal[messagesNumToConsensus](type="int");
+		@statistic[messagesNumToConsensus](title="Number of messages required to reach consensus";record=vector, timeavg, max, mean;interpolationmode=sample-hold);
+		@statistic[consensusTime](title="Time to required reach consensus";unit=s;record=vector,mean,max;interpolationmode=none);
+		
     types:
         channel Channel extends ned.DelayChannel
         {

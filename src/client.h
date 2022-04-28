@@ -14,9 +14,13 @@ public:
     int numberOfRequests;
     string lastCommand;
 
+    simsignal_t commandResponseTimeSignal;
+    simtime_t command_timestamp;
+
     void scheduleSendCommand();
     void scheduleResendCommand();
     void cancelResendCommandTimeout();
+    void emitCommandTimeResponseSignal();
 
 protected:
     virtual void initialize() override;

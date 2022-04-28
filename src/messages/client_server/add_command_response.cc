@@ -29,6 +29,7 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         return;
     }
 
+    client->emitCommandTimeResponseSignal();
     // Schedule the sending of a new command
     client->scheduleSendCommand();
 }
