@@ -11,7 +11,6 @@ class Client: public cSimpleModule {
 public:
     int numberOfServers;
     int lastCommandId;
-    int numberOfRequests;
     string lastCommand;
 
     simsignal_t commandResponseTimeSignal;
@@ -37,6 +36,6 @@ private:
     string buildRandomString(int);
 };
 
-Define_Module(Client);
+Define_Module (Client);
 
 #endif

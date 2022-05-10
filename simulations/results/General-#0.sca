@@ -1,14 +1,14 @@
 version 2
-run General-0-20220428-11:05:42-7144
+run General-0-20220510-19:21:56-72885
 attr configname General
-attr datetime 20220428-11:05:42
+attr datetime 20220510-19:21:56
 attr experiment General
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsf ""
 attr measurement ""
 attr network Raft
-attr processid 7144
+attr processid 72885
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -19,17 +19,17 @@ param Raft.numClients 2
 param Raft.client[*].numServers 5
 
 statistic Raft.client[0] commandResponseTime:stats
-field count 1040
-field mean 0.041892426752416
-field stddev 0.0074186106947113
-field min 0.015488135024
+field count 541
+field mean 0.042542271064074
+field stddev 0.0067414695896457
+field min 0.030976270048
 field max 0.046464405072
-field sum 43.568123822513
-field sqrsum 1.8823566162154
+field sum 23.015368645664
+field sqrsum 1.0036676541666
 attr interpolationmode linear
 attr title "Total response time of client request, stats"
 attr unit s
-scalar Raft.client[0] commandResponseTime:mean 0.041892426752416
+scalar Raft.client[0] commandResponseTime:mean 0.042542271064074
 attr interpolationmode linear
 attr title "Total response time of client request, mean"
 attr unit s
@@ -38,17 +38,17 @@ attr interpolationmode linear
 attr title "Total response time of client request, max"
 attr unit s
 statistic Raft.client[1] commandResponseTime:stats
-field count 1012
-field mean 0.027701111060712
-field stddev 0.0073993166559163
-field min 0.015488135024
+field count 526
+field mean 0.042783764619529
+field stddev 0.0065986302730732
+field min 0.030976270048
 field max 0.046464405072
-field sum 28.03352439344
-field sqrsum 0.83191190837711
+field sum 22.504260189872
+field sqrsum 0.9856764796775
 attr interpolationmode linear
 attr title "Total response time of client request, stats"
 attr unit s
-scalar Raft.client[1] commandResponseTime:mean 0.027701111060712
+scalar Raft.client[1] commandResponseTime:mean 0.042783764619529
 attr interpolationmode linear
 attr title "Total response time of client request, mean"
 attr unit s
@@ -56,7 +56,7 @@ scalar Raft.client[1] commandResponseTime:max 0.046464405072
 attr interpolationmode linear
 attr title "Total response time of client request, max"
 attr unit s
-scalar Raft consensusTime:mean nan
+scalar Raft consensusTime:mean -nan
 attr interpolationmode none
 attr title "Time to required reach consensus, mean"
 attr unit s
@@ -64,13 +64,13 @@ scalar Raft consensusTime:max nan
 attr interpolationmode none
 attr title "Time to required reach consensus, max"
 attr unit s
-scalar Raft messagesNumToConsensus:timeavg nan
+scalar Raft messagesNumToConsensus:timeavg -nan
 attr interpolationmode sample-hold
 attr title "Number of messages required to reach consensus, timeavg"
 scalar Raft messagesNumToConsensus:max nan
 attr interpolationmode sample-hold
 attr title "Number of messages required to reach consensus, max"
-scalar Raft messagesNumToConsensus:mean nan
+scalar Raft messagesNumToConsensus:mean -nan
 attr interpolationmode sample-hold
 attr title "Number of messages required to reach consensus, mean"
 

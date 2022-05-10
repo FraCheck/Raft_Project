@@ -1,12 +1,12 @@
 #include <ctime>
 #include <random>
-#include "client.h"
 
+#include "client.h"
 #include "messages/client_server/add_command.h"
+#include "utils/unique_id.h"
 
 void Client::initialize() {
     numberOfServers = par("numServers");
-    numberOfRequests = 0;
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout");
     scheduleSendCommand();
@@ -24,25 +24,20 @@ void Client::handleMessage(cMessage *msg) {
         if (msg == sendCommandEvent) {
             command_timestamp = simTime();
             // Select randomly the recipient
-            int serverindex = uniform(0, numberOfServers-1);
+            int serverindex = uniform(0, numberOfServers - 1);
 
-            // Generate the requestId
-            // unique id from 2 numbers x,y -> z z -> x,y  z = (x+y)(x+y+1)/2 + y
-            // good if client doesn't crash , if it crashes it is necessary to give him a new index, or  another unique serial number algorithm that supports failures has to be implemented
-            lastCommandId = (getIndex() + numberOfRequests)
-                    * (getIndex() + numberOfRequests + 1) / 2;
-
+            lastCommandId = UniqueID().id;
             lastCommand = buildRandomString(5);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
+
             resendCommandEvent = new cMessage("ResendCommandEvent");
-            numberOfRequests++;
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
         }
 
         if (msg == resendCommandEvent) {
-            int serverindex = uniform(0, numberOfServers-1);
+            int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
 
@@ -74,7 +69,7 @@ void Client::cancelResendCommandTimeout() {
     cancelEvent(resendCommandEvent);
 }
 
-void Client::emitCommandTimeResponseSignal(){
+void Client::emitCommandTimeResponseSignal() {
     emit(commandResponseTimeSignal, simTime() - command_timestamp);
 }
 
