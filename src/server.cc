@@ -7,6 +7,8 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
+#include "messages/server_statsCollector/leader_failure.h"
+#include "messages/server_statsCollector/leader_elected.h"
 #include "utils/printer.h"
 
 void Server::initialize() {
@@ -39,19 +41,24 @@ void Server::handleMessage(cMessage *msg) {
     // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
-            AppendEntries *heartbeat = new AppendEntries("Heartbeat",
-                    currentTerm, getIndex(), getLastLogIndex(),
-                    getLastLogTerm(), { }, commitIndex);
-            broadcast(heartbeat);
-
             // Test what happens if a leader do not send HeartBeats anymore
             if (faultywhenleader && uniform(0, 1) > 0.6) {
                 bubble("definitely crashed");
                 crashed = true;
                 cDisplayString &dispStr = getDisplayString();
                 dispStr.parse("i=block/process");
+
+                LeaderFailure *failed = new LeaderFailure();
+                send(failed, "toStatsCollector");
                 return;
             }
+
+            AppendEntries *heartbeat = new AppendEntries("Heartbeat",
+                    currentTerm, getIndex(), getLastLogIndex(),
+                    getLastLogTerm(), { }, commitIndex);
+            broadcast(heartbeat);
+
+
 
             scheduleHeartbeat();
             return;
@@ -149,6 +156,8 @@ void Server::startElection() {
 void Server::scheduleHeartbeat() {
     cancelEvent(heartbeatEvent);
     simtime_t heartbeatPeriod = par("heartbeatPeriod");
+    // EV << "SIMULATION TIMES TEST, heartbeatPeriod: "<<heartbeatPeriod<< "   || simTime():  " << simTime() << "   ||SUM: "<< simTime() + heartbeatPeriod ;
+
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
 
@@ -202,3 +211,7 @@ void Server::logNextAndMatchIndexes() {
     EV << "matchIndex: " << printElements(matchIndex, getVectorSize()) << endl;
 }
 
+void Server::registerLeaderElectionTime(){
+    LeaderElected *elected = new LeaderElected();
+    send(elected, "toStatsCollector");
+}

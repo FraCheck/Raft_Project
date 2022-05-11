@@ -26,6 +26,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     server->state = LEADER;
     server->currentLeader = server->getIndex();
+    server->registerLeaderElectionTime();
 
     EV << endl << "NEW LEADER: Server #" << server->getIndex() << endl;
 
