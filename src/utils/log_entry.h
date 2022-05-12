@@ -14,7 +14,7 @@ public:
     // Term during which the command was received by the leader
     int term;
 
-    //
+    // Unique identifier of the command
     int commandId;
 
     // A state machine command
@@ -107,7 +107,7 @@ public:
         ostringstream out;
 
         for (LogEntry logEntry : log)
-            out << "| " << logEntry.term << "_" << logEntry.index << " |";
+            out << " " << logEntry.term << "-" << logEntry.index << " ";
 
         return out.str();
     }

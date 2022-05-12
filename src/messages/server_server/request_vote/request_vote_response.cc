@@ -27,8 +27,6 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     server->state = LEADER;
     server->currentLeader = server->getIndex();
 
-    EV << endl << "NEW LEADER: Server #" << server->getIndex() << endl;
-
     // "When a leader first comes to power, it initializes all nextIndex values
     // to the index just after the last one in its log."
 
@@ -36,8 +34,6 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
         server->nextIndex[i] = server->getLastLogIndex() + 1;
         server->matchIndex[i] = 0;
     }
-
-    server->logNextAndMatchIndexes();
 
     AppendEntries *heartbeat = new AppendEntries("Heartbeat",
             server->currentTerm, server->getIndex(), server->getLastLogIndex(),

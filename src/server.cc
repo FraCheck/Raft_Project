@@ -9,19 +9,74 @@
 #include "messages/server_server/request_vote/request_vote_response.h"
 #include "utils/printer.h"
 
+void Server::refreshDisplay() const {
+    ostringstream out;
+    cDisplayString &dispStr = getDisplayString();
+
+    if (state == FOLLOWER)
+        out << "i=block/circle;";
+    if (state == LEADER)
+        out << "i=block/triangle;";
+    if (state == CANDIDATE)
+        out << "i=block/square;";
+
+    if (crashed)
+        out << "i2=status/stop;";
+
+    if (state == LEADER)
+        out << "t=nextIndex: " << printElements(nextIndex, getVectorSize())
+                << endl << "matchIndex: "
+                << printElements(matchIndex, getVectorSize());
+
+    dispStr.parse(out.str().c_str());
+
+    ostringstream labelText;
+    labelText << padOut(to_string(getIndex()), 3)
+            << padOut(to_string(currentTerm), 6)
+            << padOut(to_string(votedFor), 6)
+            << padOut(to_string(commitIndex), 8)
+            << padOut(to_string(lastApplied), 7) << "[" << log->toString()
+            << "]";
+
+    label->setText(labelText.str().c_str());
+    label->setPosition(cFigure::Point(20, 6 + getIndex() * 6));
+    label->setFont(cFigure::Font("Courier New"));
+    label->setAnchor(cFigure::ANCHOR_NW);
+
+    cCanvas *canvas = getParentModule()->getCanvas();
+    if (canvas->findFigure(label) != -1)
+        canvas->removeFigure(label);
+    canvas->addFigure(label);
+}
+
 void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
 
-    faultywhenleader = par("faultyWhenLeader");
-
     rescheduleElectionTimeout();
+
+    canFail = par("canFail");
+    if (canFail) {
+        crashEvent = new cMessage("crashEvent");
+        recoverEvent = new cMessage("recoverEvent");
+
+        scheduleCrash();
+    }
 
     WATCH(currentTerm);
     WATCH(state);
     WATCH(votedFor);
     WATCH(electionTimeout);
+
+    cLabelFigure *title = new cLabelFigure();
+    title->setText("#  term  vote  commit  apply  logEntries (term-index)");
+    title->setPosition(cFigure::Point(20, 0));
+    title->setFont(cFigure::Font("Courier New"));
+    title->setAnchor(cFigure::ANCHOR_NW);
+
+    cCanvas *canvas = getParentModule()->getCanvas();
+    canvas->addFigure(title);
 }
 
 void Server::finish() {
@@ -31,6 +86,20 @@ void Server::finish() {
 }
 
 void Server::handleMessage(cMessage *msg) {
+    if (msg == crashEvent) {
+        bubble("CRASHED");
+        crashed = true;
+        scheduleRecover();
+        return;
+    }
+
+    if (msg == recoverEvent) {
+        bubble("RECOVERED");
+        crashed = false;
+        scheduleCrash();
+        return;
+    }
+
     if (crashed) {
         delete msg;
         return;
@@ -45,13 +114,13 @@ void Server::handleMessage(cMessage *msg) {
             broadcast(heartbeat);
 
             // Test what happens if a leader do not send HeartBeats anymore
-            if (faultywhenleader && uniform(0, 1) > 0.6) {
-                bubble("definitely crashed");
-                crashed = true;
-                cDisplayString &dispStr = getDisplayString();
-                dispStr.parse("i=block/process");
-                return;
-            }
+//            if (canFail && uniform(0, 1) > 0.8) {
+//                bubble("definitely crashed");
+//                crashed = true;
+//                cDisplayString &dispStr = getDisplayString();
+//                dispStr.parse("i=block/process");
+//                return;
+//            }
 
             scheduleHeartbeat();
             return;
@@ -95,6 +164,11 @@ void Server::handleMessage(cMessage *msg) {
     // Generic behavior for RPC messages
     if (dynamic_cast<RPC*>(msg) != nullptr) {
         RPC *rpc = check_and_cast<RPC*>(msg);
+
+        // If commitIndex > lastApplied: increment lastApplied, apply
+        // log[lastApplied] to state machine
+        if (commitIndex > lastApplied)
+            lastApplied++;
 
         // "If RPC request or response contains term T > currentTerm:
         // set currentTerm = T, convert to follower"
@@ -177,6 +251,16 @@ void Server::cancelResendAppendEntries() {
     cancelEvent(resendAppendEntryEvent);
 }
 
+void Server::scheduleCrash() {
+    simtime_t crashTimeout = par("crashTimeout");
+    scheduleAt(simTime() + crashTimeout, crashEvent);
+}
+
+void Server::scheduleRecover() {
+    simtime_t recoverTimeout = par("recoverTimeout");
+    scheduleAt(simTime() + recoverTimeout, recoverEvent);
+}
+
 void Server::broadcast(cMessage *msg) {
     for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
@@ -196,9 +280,3 @@ int Server::getLastLogIndex() {
 
     return log->getLast().index;
 }
-
-void Server::logNextAndMatchIndexes() {
-    EV << "nextIndex: " << printElements(nextIndex, getVectorSize()) << endl;
-    EV << "matchIndex: " << printElements(matchIndex, getVectorSize()) << endl;
-}
-

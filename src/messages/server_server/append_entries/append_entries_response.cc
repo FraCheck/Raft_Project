@@ -29,8 +29,6 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
     server->matchIndex[senderIndex] = lastLogIndex;
     server->nextIndex[senderIndex] = lastLogIndex + 1;
 
-    server->logNextAndMatchIndexes();
-
     // Check if commitIndex should be updated
 
     int replicationCount = 0;
@@ -39,15 +37,8 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
             replicationCount++;
     }
 
-    EV << "Replication count for log " << lastLogIndex << " is "
-              << replicationCount << endl;
-
-    EV << "Old commitIndex" << server->commitIndex << endl;
-
     if (replicationCount > server->getVectorSize() / 2) {
         server->commitIndex = lastLogIndex;
-
-        EV << "commitIndex updated to " << server->commitIndex << endl;
     }
 
     // "When the entry has been safely replicated, the leader applies
@@ -59,9 +50,6 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
         if (logEntry.isCommitted)
             break;
 
-        EV << "Entry " << logIndex << " isCommitted = " << logEntry.isCommitted
-                  << endl;
-
         // Set entries as committed
         server->log->commit(logIndex);
 
@@ -69,6 +57,5 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
         AddCommandResponse *response = new AddCommandResponse(true,
                 server->getIndex(), logEntry.commandId);
         server->send(response, "toclients", logEntry.clientId);
-
     }
 }

@@ -14,8 +14,10 @@ void AddCommandResponse::handleOnClient(Client *client) const {
     // Response received: cancel re-send timeout
     client->cancelResendCommandTimeout();
 
-    if (client->lastCommandId != requestId)
-        throw invalid_argument("Received response for another request");
+    if (client->lastCommandId != requestId) {
+        client->bubble("Received response for another request");
+        return;
+    }
 
     if (!success) {
         // The message has been sent to the wrong server:

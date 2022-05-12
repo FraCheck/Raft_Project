@@ -7,13 +7,13 @@ using namespace std;
 
 string printVector(vector<int> v) {
     ostringstream out;
-        out << "[ ";
+    out << "[ ";
 
-        for (int i : v)
-            out << i << " ";
+    for (int i : v)
+        out << i << " ";
 
-        out << "]";
-        return out.str();
+    out << "]";
+    return out.str();
 }
 
 string printElements(int *t, int size) {
@@ -25,6 +25,17 @@ string printElements(int *t, int size) {
 
     out << "]";
     return out.str();
+}
+
+string padOut(string s, int length) {
+    ostringstream out;
+    out << s;
+
+    int actualLength = s.length();
+    for (int i = actualLength; i < length; i++)
+        out << " ";
+
+    return out.str().c_str();
 }
 
 #endif

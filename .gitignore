@@ -1,6 +1,5 @@
 /out/
 simulations/.qtenvrc
-simulations/results/
 src/Makefile
 src/Raft_Project
 src/Raft_Project_dbg.exe

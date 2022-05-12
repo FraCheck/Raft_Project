@@ -2,8 +2,10 @@
 #define SERVER_H_
 
 #include <omnetpp.h>
-#include "utils/log_entry.h"
 #include <map>
+
+#include "utils/log_entry.h"
+
 using namespace omnetpp;
 using namespace std;
 
@@ -50,7 +52,7 @@ public:
 
     int currentLeader;
     int votesCount = 0;
-    bool faultywhenleader;
+    bool canFail;
     bool crashed = false;
     simtime_t electionTimeout;
 
@@ -66,8 +68,6 @@ public:
     int getLastLogTerm();
     int getLastLogIndex();
 
-    void logNextAndMatchIndexes();
-
 private:
     // Message to trigger the election timeout
     cMessage *electionTimeoutEvent;
@@ -79,21 +79,16 @@ private:
     // to all the server not yet consistent with the leader log
     cMessage *resendAppendEntryEvent;
 
-    void refreshDisplay() const override {
-        ostringstream out;
-        cDisplayString &dispStr = getDisplayString();
+    // Messages to trigger the server crash and recovery
+    // (useless if canCrash = false)
+    cMessage *crashEvent;
+    cMessage *recoverEvent;
 
-        if (state == FOLLOWER)
-            out << "i=block/circle;";
-        if (state == LEADER)
-            out << "i=block/triangle;";
-        if (state == CANDIDATE)
-            out << "i=block/square;";
+    void scheduleCrash();
+    void scheduleRecover();
 
-        out << "t=" << log->toString();
-
-        dispStr.parse(out.str().c_str());
-    }
+    cLabelFigure *label = new cLabelFigure("label");
+    void refreshDisplay() const override;
 
 protected:
     virtual void initialize() override;

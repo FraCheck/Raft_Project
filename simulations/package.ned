@@ -6,9 +6,12 @@ simple Server
 {
     parameters:
         volatile double electionTimeout @unit(ms) = default(uniform(400ms,500ms));
-        volatile double heartbeatPeriod @unit(ms) = electionTimeout/2;
+        volatile double heartbeatPeriod @unit(ms) = electionTimeout/4;
         double retryAppendEntriesPeriod @unit(ms) = default(150ms);
-        bool faultyWhenLeader = default(false);
+ 
+        bool canFail = default(false);
+        double crashTimeout @unit(s) = default(uniform(10s, 5000s));
+        double recoverTimeout @unit(s) = default(500s);
     gates:
         input in[];
         output out[];

@@ -18,11 +18,6 @@ void AppendEntries::handleOnServer(Server *server) const {
         return;
     }
 
-    EV << "Follower last log: TERM " << server->getLastLogTerm() << " ; INDEX "
-              << server->getLastLogIndex() << endl;
-    EV << "Leader   prev log: TERM " << prevLogTerm << " ; INDEX "
-              << prevLogIndex << endl;
-
     // "Reply false if log doesn't contain an entry at prevLogIndex
     // whose term matches prevLogTerm"
 
