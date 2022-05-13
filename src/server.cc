@@ -7,8 +7,8 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
-#include "messages/server_statsCollector/leader_failure.h"
 #include "messages/server_statsCollector/leader_elected.h"
+#include "messages/server_statsCollector/server_failure.h"
 #include "utils/printer.h"
 
 void Server::refreshDisplay() const {
@@ -92,6 +92,10 @@ void Server::handleMessage(cMessage *msg) {
         bubble("CRASHED");
         crashed = true;
         scheduleRecover();
+
+        ServerFailure *failed = new ServerFailure();
+        send(failed, "toStatsCollector");
+
         return;
     }
 
@@ -99,6 +103,7 @@ void Server::handleMessage(cMessage *msg) {
         bubble("RECOVERED");
         crashed = false;
         scheduleCrash();
+
         return;
     }
 
@@ -110,28 +115,18 @@ void Server::handleMessage(cMessage *msg) {
     // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
-            // Test what happens if a leader do not send HeartBeats anymore
-//            if (canFail && uniform(0, 1) > 0.8) {
-//                bubble("definitely crashed");
-//                crashed = true;
-//                cDisplayString &dispStr = getDisplayString();
-//                dispStr.parse("i=block/process");
-//                return;
-//            }
-
             AppendEntries *heartbeat = new AppendEntries("Heartbeat",
                     currentTerm, getIndex(), getLastLogIndex(),
                     getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
-
-
-
             scheduleHeartbeat();
+
             return;
         }
 
         if (msg == electionTimeoutEvent) {
             startElection();
+
             return;
         }
 
@@ -156,6 +151,7 @@ void Server::handleMessage(cMessage *msg) {
                 scheduleAt(simTime() + appendEntryPeriod,
                         resendAppendEntryEvent);
             }
+
             return;
         }
 
@@ -222,6 +218,11 @@ void Server::startElection() {
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
     broadcast(requestvote);
+}
+
+void Server::registerLeaderElectionTime() {
+    LeaderElected *elected = new LeaderElected();
+    send(elected, "toStatsCollector");
 }
 
 void Server::scheduleHeartbeat() {

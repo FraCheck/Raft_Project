@@ -1,0 +1,161 @@
+version 2
+run General-0-20220513-17:20:20-41216
+attr configname General
+attr datetime 20220513-17:20:20
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network Raft
+attr processid 41216
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param Raft.numServers 5
+param Raft.numClients 2
+param Raft.client[*].numServers 5
+param Raft.server[*].canFail true
+
+statistic Raft.client[0] commandResponseTime:stats
+field count 0
+field mean -nan
+field stddev nan
+field min nan
+field max nan
+field sum 0
+field sqrsum 0
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[0] commandResponseTime:mean -nan
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[0] commandResponseTime:max nan
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+statistic Raft.client[1] commandResponseTime:stats
+field count 0
+field mean -nan
+field stddev nan
+field min nan
+field max nan
+field sum 0
+field sqrsum 0
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[1] commandResponseTime:mean -nan
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[1] commandResponseTime:max nan
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+scalar Raft.statsCollector consensusTime:mean 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, mean"
+attr unit s
+scalar Raft.statsCollector consensusTime:max 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, max"
+attr unit s
+scalar Raft.statsCollector consensusTime:min 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, min"
+attr unit s
+scalar Raft messagesNumToConsensus:timeavg -nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, timeavg"
+scalar Raft messagesNumToConsensus:max nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, max"
+scalar Raft messagesNumToConsensus:mean -nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, mean"
+
+run General-0-20220513-17:18:46-41047
+attr configname General
+attr datetime 20220513-17:18:46
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network Raft
+attr processid 41047
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param Raft.numServers 5
+param Raft.numClients 2
+param Raft.client[*].numServers 5
+param Raft.server[*].canFail true
+
+statistic Raft.client[0] commandResponseTime:stats
+field count 0
+field mean -nan
+field stddev nan
+field min nan
+field max nan
+field sum 0
+field sqrsum 0
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[0] commandResponseTime:mean -nan
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[0] commandResponseTime:max nan
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+statistic Raft.client[1] commandResponseTime:stats
+field count 0
+field mean -nan
+field stddev nan
+field min nan
+field max nan
+field sum 0
+field sqrsum 0
+attr interpolationmode linear
+attr title "Total response time of client request, stats"
+attr unit s
+scalar Raft.client[1] commandResponseTime:mean -nan
+attr interpolationmode linear
+attr title "Total response time of client request, mean"
+attr unit s
+scalar Raft.client[1] commandResponseTime:max nan
+attr interpolationmode linear
+attr title "Total response time of client request, max"
+attr unit s
+scalar Raft.statsCollector consensusTime:mean 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, mean"
+attr unit s
+scalar Raft.statsCollector consensusTime:max 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, max"
+attr unit s
+scalar Raft.statsCollector consensusTime:min 0.44524159555
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, min"
+attr unit s
+scalar Raft messagesNumToConsensus:timeavg -nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, timeavg"
+scalar Raft messagesNumToConsensus:max nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, max"
+scalar Raft messagesNumToConsensus:mean -nan
+attr interpolationmode sample-hold
+attr title "Number of messages required to reach consensus, mean"
+

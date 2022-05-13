@@ -12,6 +12,7 @@ simple Server
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(10s, 5000s));
         double recoverTimeout @unit(s) = default(500s);
+        
     gates:
         input in[];
         output out[];
@@ -19,16 +20,16 @@ simple Server
         output toclients[];
         output toStatsCollector;
 }
+
 simple Client
 {
     parameters:
         double sendCommandTimeout @unit(ms) = default(uniform(800ms, 1000ms));
         double resendCommandTimeout @unit(ms) = default(500ms);
         int numServers = default(5);
-        @display("i=block/source");
         
+        @display("i=block/source");
         @signal[commandResponseTime](type="simtime_t");
-               
         @statistic[commandResponseTime](title="Total response time of client request";unit=s;record=vector,stats,mean,max;interpolationmode=linear);
         
     gates:
@@ -41,8 +42,8 @@ simple StatsCollector
     parameters:
         int numServers = default(5);
         
-        @signal[consensusTime](type="simtime_t");
-               
+        @display("p=20,60");
+        @signal[consensusTime](type="simtime_t");         
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless";unit=s;record=vector,mean,max,min;interpolationmode=linear);
     gates:
         input in[];        

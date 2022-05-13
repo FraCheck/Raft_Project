@@ -5,18 +5,18 @@
 #include "../handable_message.h"
 #include "../../statsCollector.h"
 
-class LeaderFailure: public HandableMessage {
+class ServerFailure: public HandableMessage {
 
 
 public:
-    LeaderFailure() {
+    ServerFailure() {
         cMessage::setName("LeaderFailure");
     }
 
     void handleOnStatsCollector(StatsCollector *statsCollector) const override;
 
     cMessage* dup() const override {
-        return new LeaderFailure();
+        return new ServerFailure();
     }
 };
 
