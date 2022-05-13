@@ -64,6 +64,7 @@ public:
     void scheduleResendAppendEntries();
     void cancelResendAppendEntries();
     void broadcast(cMessage *msg);
+    void registerLeaderElectionTime();
 
     int getLastLogTerm();
     int getLastLogIndex();

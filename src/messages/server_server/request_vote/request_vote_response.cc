@@ -26,6 +26,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     server->state = LEADER;
     server->currentLeader = server->getIndex();
+    server->registerLeaderElectionTime();
 
     // "When a leader first comes to power, it initializes all nextIndex values
     // to the index just after the last one in its log."
