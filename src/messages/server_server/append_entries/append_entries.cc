@@ -5,17 +5,11 @@
 #include "../../../utils/log_entry.h"
 
 void AppendEntries::handleOnServer(Server *server) const {
-    // Check if it's an HeartBeat
-    if (entries.empty()) {
-        if (server->state == CANDIDATE) {
-            // Accept the HeartBeat sender as Leader
-            server->state = FOLLOWER;
-            server->votesCount = 0;
-        }
-
-        server->currentLeader = leaderId;
-        buildAndSendResponse(server, true);
-        return;
+    server->currentLeader = leaderId;
+    if (server->state == CANDIDATE) {
+        // Accept the HeartBeat sender as Leader
+        server->state = FOLLOWER;
+        server->votesCount = 0;
     }
 
     // "Reply false if log doesn't contain an entry at prevLogIndex

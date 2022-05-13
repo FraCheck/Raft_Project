@@ -7,7 +7,7 @@ void StatsCollector::initialize() {
     numberOfServers = par("numServers");
     // Signals registering
     consensusTimeSignal = registerSignal("consensusTime");
-    leader_failed = simTime();
+    server_failed = simTime();
     is_election_ongoing = true;
 }
 
@@ -25,5 +25,5 @@ void StatsCollector::handleMessage(cMessage *msg) {
 }
 
 void StatsCollector::emitConsensusTime(){
-    emit(consensusTimeSignal, new_leader_elected - leader_failed);
+    emit(consensusTimeSignal, new_leader_elected - server_failed);
 }

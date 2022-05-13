@@ -89,6 +89,9 @@ void Server::finish() {
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
+        if (uniform(0, 1) > 0.3)
+            return;
+
         bubble("CRASHED");
         crashed = true;
         scheduleRecover();

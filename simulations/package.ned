@@ -7,11 +7,11 @@ simple Server
     parameters:
         volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
-        double retryAppendEntriesPeriod @unit(ms) = default(150ms);
+        double retryAppendEntriesPeriod @unit(s) = default(0.15s);
  
         bool canFail = default(false);
-        double crashTimeout @unit(s) = default(uniform(10s, 5000s));
-        double recoverTimeout @unit(s) = default(500s);
+        double crashTimeout @unit(s) = default(uniform(1s, 4s));
+        double recoverTimeout @unit(s) = default(uniform(3s, 5s));
         
     gates:
         input in[];
@@ -24,8 +24,8 @@ simple Server
 simple Client
 {
     parameters:
-        double sendCommandTimeout @unit(ms) = default(uniform(800ms, 1000ms));
-        double resendCommandTimeout @unit(ms) = default(500ms);
+        double sendCommandTimeout @unit(s) = default(uniform(0.8s, 1s));
+        double resendCommandTimeout @unit(s) = default(0.5s);
         int numServers = default(5);
         
         @display("i=block/source");
@@ -48,6 +48,7 @@ simple StatsCollector
     gates:
         input in[];        
 }
+
 network Raft
 {
     
