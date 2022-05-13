@@ -10,13 +10,16 @@ using namespace std;
 class Client: public cSimpleModule {
 public:
     int numberOfServers;
-    int lastRequestId;
-    int numberOfRequests;
+    int lastCommandId;
     string lastCommand;
+
+    simsignal_t commandResponseTimeSignal;
+    simtime_t command_timestamp;
 
     void scheduleSendCommand();
     void scheduleResendCommand();
     void cancelResendCommandTimeout();
+    void emitCommandTimeResponseSignal();
 
 protected:
     virtual void initialize() override;
@@ -33,6 +36,6 @@ private:
     string buildRandomString(int);
 };
 
-Define_Module(Client);
+Define_Module (Client);
 
 #endif

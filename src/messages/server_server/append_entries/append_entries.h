@@ -15,19 +15,19 @@ private:
     // Index of the LogEntry immediately preceding the new ones
     int prevLogIndex;
 
-    // Term of prevLogIndex entry
+    // Term of the LogEntry immediately preceding the new ones
     int prevLogTerm;
 
     // LogEntries to store (empty for HeartBeat;
     // may send more than one for efficiency)
-    list<LogEntry> entries;
+    vector<LogEntry> entries;
 
     // Leader’s commitIndex
     int leaderCommit;
 
 public:
     AppendEntries(string name, int term, int leaderId, int prevLogIndex,
-            int prevLogTerm, list<LogEntry> entries, int leaderCommit) :
+            int prevLogTerm, vector<LogEntry> entries, int leaderCommit) :
             RPCRequest(term) {
         cMessage::setName(name.c_str());
         this->leaderId = leaderId;
@@ -39,6 +39,10 @@ public:
 
     void handleOnServer(Server *server) const override;
     void buildAndSendResponse(Server *server, bool success) const override;
+
+    const char* getDisplayString() const override {
+        return "b=14,14,oval,yellow,black,1.2";
+    }
 
     cMessage* dup() const override {
         return new AppendEntries(getName(), term, leaderId, prevLogIndex,

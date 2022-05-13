@@ -14,14 +14,16 @@ void AddCommandResponse::handleOnClient(Client *client) const {
     // Response received: cancel re-send timeout
     client->cancelResendCommandTimeout();
 
-    if (client->lastRequestId != requestId)
-        throw invalid_argument("Received response for another request");
+    if (client->lastCommandId != requestId) {
+        client->bubble("Received response for another request");
+        return;
+    }
 
     if (!success) {
         // The message has been sent to the wrong server:
         // send the command to the leader
-        AddCommand *request = new AddCommand(client->lastCommand,
-                client->lastRequestId, client->getIndex());
+        AddCommand *request = new AddCommand(client->lastCommandId,
+                client->lastCommand, client->getIndex());
         client->send(request, "out", leaderId);
 
         // Set a timeout to retry the request if the server is not responding
@@ -29,6 +31,7 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         return;
     }
 
+    client->emitCommandTimeResponseSignal();
     // Schedule the sending of a new command
     client->scheduleSendCommand();
 }

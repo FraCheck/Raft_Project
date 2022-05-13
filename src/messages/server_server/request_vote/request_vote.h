@@ -31,6 +31,10 @@ public:
     void handleOnServer(Server *server) const override;
     void buildAndSendResponse(Server *server, bool success) const override;
 
+    const char* getDisplayString() const override {
+        return "b=14,14,oval,yellow,black,1.2";;
+    }
+
     cMessage* dup() const override {
         return new RequestVote(getName(), term, candidateId, lastLogIndex,
                 lastLogTerm);

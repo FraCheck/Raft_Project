@@ -5,75 +5,114 @@
 #include <string>
 
 using namespace std;
+using namespace omnetpp;
 
 int square(int);
 
 class LogEntry {
-private:
-    // A state machine command
-    string command;
-
+public:
     // Term during which the command was received by the leader
     int term;
+
+    // Unique identifier of the command
+    int commandId;
+
+    // A state machine command
+    string command;
 
     // Position of the LogEntry in the log
     int index;
 
     // True if the LogEntry is replicated on the majority of the servers
-    bool committed;
-
-    //
-    int requestId;
+    bool isCommitted;
 
     //
     int clientId;
 
-public:
-    LogEntry(int logterm, string command, int requestId, int clientId,
-            int index) {
-        this->term = logterm;
+    LogEntry(int term, string command, int commandId, int clientId, int index) {
+        this->term = term;
         this->command = command;
-        this->committed = false;
-        this->requestId = requestId;
+        this->isCommitted = false;
+        this->commandId = commandId;
         this->clientId = clientId;
         this->index = index;
-
     }
 
-    string getEntry() const {
-        return command;
+    LogEntry(LogEntry *logEntry) {
+        this->term = logEntry->term;
+        this->command = logEntry->command;
+        this->isCommitted = logEntry->isCommitted;
+        this->commandId = logEntry->commandId;
+        this->clientId = logEntry->clientId;
+        this->index = logEntry->index;
     }
 
-    void setEntry(string entry) {
-        this->command = entry;
+};
+
+// Class to implement the expected behavior of the log.
+// In particular, its indexes starts from 1 and not from 0.
+class LogEntryVector {
+private:
+    vector<LogEntry> log;
+    int serverId;
+public:
+    LogEntryVector(int serverId) {
+        this->serverId = serverId;
     }
 
-    int getLogTerm() const {
-        return term;
+    LogEntry getFromIndex(int index) const {
+        if (index < 1 || index > log.size())
+            throw invalid_argument(
+                    "No log entries with index " + to_string(index));
+
+        return log[index - 1];
     }
 
-    void setLogterm(int logterm) {
-        this->term = logterm;
+    LogEntry getLast() const {
+        if (log.size() < 1)
+            throw out_of_range("Not enough entries in the log");
+
+        return log.end()[-1];
     }
 
-    int getClientId() const {
-        return clientId;
+    LogEntry getSecondToLast() const {
+        if (log.size() < 2)
+            throw out_of_range("Not enough entries in the log");
+
+        return log.end()[-2];
     }
 
-    bool isCommitted() const {
-        return committed;
+    int size() const {
+        return log.size();
     }
 
-    void setCommitted(bool committed) {
-        this->committed = committed;
+    void append(LogEntry logEntry) {
+        if (logEntry.index != log.size() + 1)
+            throw invalid_argument(
+                    "Cannot append a log entry with index "
+                            + to_string(logEntry.index) + " (should be "
+                            + to_string(log.size() + 1) + ")");
+
+        log.push_back(logEntry);
     }
 
-    int getRequestId() const {
-        return requestId;
+    void eraseStartingFromIndex(int index) {
+        auto first = log.cbegin() + index;
+        auto last = log.cend();
+
+        log.erase(first, last);
     }
 
-    int getIndex() const {
-        return index;
+    string toString() const {
+        ostringstream out;
+
+        for (LogEntry logEntry : log)
+            out << " " << logEntry.term << "-" << logEntry.index << " ";
+
+        return out.str();
+    }
+    void commit(int index) {
+        log[index - 1].isCommitted = true;
     }
 };
 

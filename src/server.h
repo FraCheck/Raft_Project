@@ -2,8 +2,10 @@
 #define SERVER_H_
 
 #include <omnetpp.h>
-#include "utils/log_entry.h"
 #include <map>
+
+#include "utils/log_entry.h"
+
 using namespace omnetpp;
 using namespace std;
 
@@ -13,7 +15,7 @@ enum ServerState {
 
 class Server: public cSimpleModule {
 public:
-    ServerState currentState = FOLLOWER;
+    ServerState state = FOLLOWER;
 
     // *** PERSISTENT STATE ON ALL SERVERS ***
     // (Updated on stable storage before responding to RPCs)
@@ -25,7 +27,7 @@ public:
     int votedFor = -1;
 
     // Log entries
-    list<LogEntry> log = { };
+    LogEntryVector *log = new LogEntryVector(getIndex());
 
     // *** VOLATILE STATE ON ALL SERVERS ***
 
@@ -42,15 +44,15 @@ public:
 
     // For each server, index of the next LogEntry to send
     // (initialized to leader last log index + 1)
-    int *nextIndex;
+    int *nextIndex = new int(getVectorSize());
 
     // For each server, index of the last log entry known to be replicated
     // (initialized to 0, increases monotonically)
-    int *matchIndex;
+    int *matchIndex = new int(getVectorSize());
 
     int currentLeader;
     int votesCount = 0;
-    bool faultywhenleader;
+    bool canFail;
     bool crashed = false;
     simtime_t electionTimeout;
 
@@ -62,6 +64,8 @@ public:
     void scheduleResendAppendEntries();
     void cancelResendAppendEntries();
     void broadcast(cMessage *msg);
+    void registerLeaderElectionTime();
+
     int getLastLogTerm();
     int getLastLogIndex();
 
@@ -75,6 +79,17 @@ private:
     // Message to trigger the re-sending of appendentries
     // to all the server not yet consistent with the leader log
     cMessage *resendAppendEntryEvent;
+
+    // Messages to trigger the server crash and recovery
+    // (useless if canCrash = false)
+    cMessage *crashEvent;
+    cMessage *recoverEvent;
+
+    void scheduleCrash();
+    void scheduleRecover();
+
+    cLabelFigure *label = new cLabelFigure("label");
+    void refreshDisplay() const override;
 
 protected:
     virtual void initialize() override;

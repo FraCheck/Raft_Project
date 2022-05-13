@@ -10,22 +10,22 @@ class AddCommand: public HandableMessage {
     string command;
 
     // Composed by clientId and request number
-    int requestId;
+    int commandId;
 
     int clientId;
 
 public:
-    AddCommand(string command, int requestId, int clientId) {
+    AddCommand(int commandId, string command, int clientId) {
         cMessage::setName("AddCommand");
+        this->commandId = commandId;
         this->command = command;
-        this->requestId = requestId;
         this->clientId = clientId;
     }
 
     void handleOnServer(Server *server) const override;
 
     cMessage* dup() const override {
-        return new AddCommand(command, requestId, clientId);
+        return new AddCommand(commandId, command, clientId);
     }
 
 private:

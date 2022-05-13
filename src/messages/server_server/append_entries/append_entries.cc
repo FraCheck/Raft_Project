@@ -5,84 +5,83 @@
 #include "../../../utils/log_entry.h"
 
 void AppendEntries::handleOnServer(Server *server) const {
-    // Check if it's an HeartBeat
-    if (entries.empty()) {
-        server->currentLeader = leaderId;
-        return;
+    server->currentLeader = leaderId;
+    if (server->state == CANDIDATE) {
+        // Accept the HeartBeat sender as Leader
+        server->state = FOLLOWER;
+        server->votesCount = 0;
     }
 
-    // N.B: Entries are implemented as a list,
-    // but actually there will be maximum 1 entry at a time
+    // "Reply false if log doesn't contain an entry at prevLogIndex
+    // whose term matches prevLogTerm"
 
-    // Reject if there are not entries at prevLogIndex
     if (server->getLastLogIndex() < prevLogIndex) {
         buildAndSendResponse(server, false);
         return;
     }
 
-    // Check the trivial case: server log is empty
+    // Check the trivial cases
+
+    // 1. follower log is empty
+    if (server->getLastLogIndex() == 0)
+        goto appendEntries;
+
+    // 2. follower log should be replaced
     if (prevLogIndex == 0) {
-
-        // Why doesn't work if i put directly entries in splice below?
-        list<LogEntry> entries_ = entries;
-        server->log.splice(server->log.end(), entries_);
-
-        buildAndSendResponse(server, true);
-        return;
+        server->log->eraseStartingFromIndex(0);
+        goto appendEntries;
     }
 
-    // Server log is NOT empty
-
-    // "Conflicting entries in follower logs will be overwritten
-    // with entries from the leader’s log. [...]
-    // To bring a follower’s log into consistency with its own,
-    // the leader must find the latest log entry where the two
-    // logs agree, delete any entries in the follower’s log after
-    // that point, and send the follower all of the leader’s entries
-    // after that point."
-
-    // Find the latest LogEntry such that the log agrees with the server one
-    list<LogEntry>::iterator it = server->log.begin();
-    advance(it, prevLogIndex - 1);
-    LogEntry logToCheck = *it;
-
-    if (logToCheck.getLogTerm() == term) { //if such entry exist...
-
-        list<LogEntry>::iterator tail = server->log.begin();
-        advance(tail, server->log.size());
-
-        list<LogEntry> entries_ = entries;
-
-        list<LogEntry>::iterator itrem = server->log.begin();
-        if (prevLogIndex < server->log.size()) {
-            advance(itrem, prevLogIndex);
-
-            // Delete entries after the common one
-            server->log.erase(itrem, tail);
-        }
-
-        // Add new entries
-        server->log.splice(server->log.end(), entries_);
-
-        buildAndSendResponse(server, true);
-        return;
-    } else { // common entry not found
+    // Check the previous LogEntry is the same
+    if (server->log->getFromIndex(prevLogIndex).term != prevLogTerm) {
         buildAndSendResponse(server, false);
         return;
     }
 
-    if (leaderCommit > server->commitIndex) {
-        // Set commitIndex = min(leaderCommit, index of last new entry)
-        int indexoflastentry = server->log.size();
-        server->commitIndex =
-                indexoflastentry < leaderCommit ?
-                        indexoflastentry : leaderCommit;
+    // "If an existing entry conflicts with a new one (same index
+    // but different terms), delete the existing entry and all that
+    // follow it"
+
+    for (int logIndex = 1; logIndex <= server->log->size(); logIndex++)
+        for (int i = 0; i < entries.size(); i++)
+            if (server->log->getFromIndex(logIndex).index == entries[i].index
+                    && server->log->getFromIndex(logIndex).term
+                            != entries[i].term) {
+                server->log->eraseStartingFromIndex(logIndex);
+                break;
+            }
+
+    // "Append any new entries not already in the log"
+
+    appendEntries:
+
+    for (int i = 0; i < entries.size(); i++) {
+        bool alreadyAppended = false;
+        for (int logIndex = 1; logIndex <= server->log->size(); logIndex++)
+            if (server->log->getFromIndex(logIndex).index == entries[i].index) {
+                alreadyAppended = true;
+                break;
+            }
+
+        if (!alreadyAppended)
+            server->log->append(entries[i]);
     }
+
+    // "If leaderCommit > commitIndex,
+    // set commitIndex = min(leaderCommit, index of last new entry)"
+
+    if (leaderCommit > server->commitIndex) {
+        int lastLogIndex = server->getLastLogIndex();
+        server->commitIndex =
+                lastLogIndex < leaderCommit ? lastLogIndex : leaderCommit;
+    }
+
+    buildAndSendResponse(server, true);
 }
 
 void AppendEntries::buildAndSendResponse(Server *server, bool success) const {
     AppendEntriesResponse *response = new AppendEntriesResponse(
-            server->currentTerm, success, server->log.size());
+            server->currentTerm, success, server->getLastLogIndex());
     server->send(response, "out", getArrivalGate()->getIndex());
 }
 

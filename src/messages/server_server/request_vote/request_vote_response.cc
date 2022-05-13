@@ -1,6 +1,5 @@
-#include "../../server_server/request_vote/request_vote_response.h"
-
-#include "../../server_server/append_entries/append_entries.h"
+#include "../request_vote/request_vote_response.h"
+#include "../append_entries/append_entries.h"
 
 void RequestVoteResponse::handleOnServer(Server *server) const {
     if (!result) {
@@ -22,23 +21,25 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
         return;
     }
 
-    server->currentState = LEADER;
+    if (server->state == LEADER)
+        return;
+
+    server->state = LEADER;
     server->currentLeader = server->getIndex();
+    server->registerLeaderElectionTime();
 
     // "When a leader first comes to power, it initializes all nextIndex values
     // to the index just after the last one in its log."
 
     for (int i = 0; i < server->getVectorSize(); i++) {
-        server->nextIndex[i] = 1;
+        server->nextIndex[i] = server->getLastLogIndex() + 1;
         server->matchIndex[i] = 0;
     }
 
-    if (server->votesCount - 1 <= server->getVectorSize() / 2) {
-        AppendEntries *heartbeat = new AppendEntries("Heartbeat",
-                server->currentTerm, server->getIndex(),
-                server->getLastLogIndex(), server->getLastLogTerm(), { },
-                server->commitIndex);
-        server->broadcast(heartbeat);
-        server->scheduleHeartbeat();
-    }
+    AppendEntries *heartbeat = new AppendEntries("Heartbeat",
+            server->currentTerm, server->getIndex(), server->getLastLogIndex(),
+            server->getLastLogTerm(), { }, server->commitIndex);
+
+    server->broadcast(heartbeat);
+    server->scheduleHeartbeat();
 }

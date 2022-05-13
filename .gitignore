@@ -2,7 +2,8 @@
 simulations/.qtenvrc
 src/Makefile
 src/Raft_Project
-.settings/language.settings.xml
 src/Raft_Project_dbg.exe
 src/Raft_Project.exe
+src/Raft_Project_dbg
+.settings/language.settings.xml
 /.vscode

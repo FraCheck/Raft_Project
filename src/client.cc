@@ -1,54 +1,54 @@
 #include <ctime>
 #include <random>
-#include "client.h"
 
+#include "client.h"
 #include "messages/client_server/add_command.h"
+#include "utils/unique_id.h"
 
 void Client::initialize() {
     numberOfServers = par("numServers");
-    numberOfRequests = 0;
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout");
     scheduleSendCommand();
+
+    // Signals registering
+    commandResponseTimeSignal = registerSignal("commandResponseTime");
 }
 
 void Client::finish() {
 }
 
 void Client::handleMessage(cMessage *msg) {
-    EV << "client index is " << getIndex() << endl;
-
+    // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == sendCommandEvent) {
+            command_timestamp = simTime();
             // Select randomly the recipient
-            int serverindex = uniform(0, numberOfServers);
+            int serverindex = uniform(0, numberOfServers - 1);
 
-            // Generate the requestId
-            // unique id from 2 numbers x,y -> z z -> x,y  z = (x+y)(x+y+1)/2 + y
-            // good if client doesn't crash , if it crashes it is necessary to give him a new index, or  another unique serial number algorithm that supports failures has to be implemented
-            lastRequestId = (getIndex() + numberOfRequests)
-                    * (getIndex() + numberOfRequests + 1) / 2;
-
+            lastCommandId = UniqueID().id;
             lastCommand = buildRandomString(5);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
+
             resendCommandEvent = new cMessage("ResendCommandEvent");
-            numberOfRequests++;
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
         }
 
         if (msg == resendCommandEvent) {
-            int serverindex = uniform(0, numberOfServers);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            int serverindex = uniform(0, numberOfServers - 1);
+            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
 
             scheduleResendCommand();
         }
-    } else {
-        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-        handableMsg->handleOnClient(this);
+
+        return;
     }
+
+    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+    handableMsg->handleOnClient(this);
 }
 
 void Client::scheduleSendCommand() {
@@ -67,6 +67,10 @@ void Client::scheduleResendCommand() {
 
 void Client::cancelResendCommandTimeout() {
     cancelEvent(resendCommandEvent);
+}
+
+void Client::emitCommandTimeResponseSignal() {
+    emit(commandResponseTimeSignal, simTime() - command_timestamp);
 }
 
 string Client::buildRandomString(int length) {

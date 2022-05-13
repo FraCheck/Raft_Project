@@ -3,22 +3,22 @@
 #include "../server_server/append_entries/append_entries.h"
 
 void AddCommand::handleOnServer(Server *server) const {
-    if (server->currentState != LEADER) {
+    if (server->state != LEADER) {
         // Redirect the client to the current leader
         buildAndSendResponse(server, false);
         return;
     }
 
-    // Look in the local log for a LogEntry with the same requestId
-    for (int index = 0; index < server->log.size(); index++) {
-        list<LogEntry>::iterator it = server->log.begin();
-        advance(it, server->commitIndex - 1);
+    // "The leader appends the command to its log as a new entry,
+    // then issues AppendEntries RPCs in parallel to each of the other
+    // servers to replicate the entry."
 
-        LogEntry logToCheck = *it;
-        if (logToCheck.getRequestId() == requestId) {
+    // Check if the command has already been received and is committed
+    for (int index = 1; index <= server->log->size(); index++) {
+        LogEntry logEntry = server->log->getFromIndex(index);
 
-            // LogEntry found: check if committed
-            if (logToCheck.isCommitted())
+        if (logEntry.commandId == commandId) {
+            if (logEntry.isCommitted)
                 buildAndSendResponse(server, true);
 
             return;
@@ -26,35 +26,36 @@ void AddCommand::handleOnServer(Server *server) const {
     }
 
     // LogEntry not yet stored: update the log
-    LogEntry *newEntry = new LogEntry(server->currentTerm, command, requestId,
-            clientId, server->log.size() + 1);
-    server->log.push_back(*newEntry);
+    LogEntry *newEntry = new LogEntry(server->currentTerm, command, commandId,
+            clientId, server->getLastLogIndex() + 1);
+    server->log->append(newEntry);
 
-    int lastLogTerm;
-    if (server->log.size() > 1) {
-        list<LogEntry>::iterator prevLogIt = server->log.begin();
-        advance(prevLogIt, server->log.size() - 2);
-        lastLogTerm = (*prevLogIt).getLogTerm();
-    } else
-        lastLogTerm = 0;
-
-    // Update followers
+    // Send AppendEntries RPCs to followers
+    int prevLogEntryIndex;
+    int prevLogEntryTerm;
+    try {
+        LogEntry prevLogEntry = server->log->getSecondToLast();
+        prevLogEntryIndex = prevLogEntry.index;
+        prevLogEntryTerm = prevLogEntry.term;
+    } catch (out_of_range e) {
+        prevLogEntryIndex = 0;
+        prevLogEntryTerm = 0;
+    }
     AppendEntries *request = new AppendEntries("AppendEntries",
-            server->currentTerm, server->getIndex(), server->log.size() - 1,
-            lastLogTerm, { server->log.back() }, server->commitIndex);
+            server->currentTerm, server->getIndex(), prevLogEntryIndex,
+            prevLogEntryTerm, { newEntry }, server->commitIndex);
     server->broadcast(request);
 
     // "If followers crash or run slowly, or if network packets are lost,
     // the leader retries AppendEntries RPCs indefinitely
     // until all followers eventually store all log entries."
 
-    server->cancelResendAppendEntries();
     server->scheduleResendAppendEntries();
 }
 
 void AddCommand::buildAndSendResponse(Server *server, bool result) const {
     AddCommandResponse *response = new AddCommandResponse(result,
-            server->currentLeader, requestId);
+            server->currentLeader, commandId);
     server->send(response, "toclients", getArrivalGate()->getIndex());
 }
 
