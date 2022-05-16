@@ -19,10 +19,6 @@ public:
     virtual void handleOnStatsCollector(StatsCollector *statsCollector) const {
     }
     ;
-
-    void finish() {
-        delete this;
-    }
 };
 
 #endif

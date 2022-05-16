@@ -34,9 +34,7 @@ void Client::handleMessage(cMessage *msg) {
             resendCommandEvent = new cMessage("ResendCommandEvent");
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
-        }
-
-        if (msg == resendCommandEvent) {
+        } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
@@ -44,11 +42,14 @@ void Client::handleMessage(cMessage *msg) {
             scheduleResendCommand();
         }
 
+        cancelAndDelete(msg);
         return;
     }
 
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnClient(this);
+
+    cancelAndDelete(msg);
 }
 
 void Client::scheduleSendCommand() {

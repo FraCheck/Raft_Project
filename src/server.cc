@@ -111,7 +111,7 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     if (crashed) {
-        delete msg;
+        delete(msg);
         return;
     }
 
@@ -123,15 +123,11 @@ void Server::handleMessage(cMessage *msg) {
                     getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
             scheduleHeartbeat();
-
-            return;
-        }
+        } else
 
         if (msg == electionTimeoutEvent) {
             startElection();
-
-            return;
-        }
+        } else
 
         // Re-send to all servers the log they need
         // in order to be consistent with the leader
@@ -154,8 +150,6 @@ void Server::handleMessage(cMessage *msg) {
                 scheduleAt(simTime() + appendEntryPeriod,
                         resendAppendEntryEvent);
             }
-
-            return;
         }
 
         return;
@@ -203,6 +197,8 @@ void Server::handleMessage(cMessage *msg) {
 
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
+
+    cancelAndDelete(msg);
 }
 
 void Server::startElection() {
