@@ -1,0 +1,38 @@
+file 1089 1652718204                                            
+version 2
+run General-0-20220516-18:22:21-22822
+attr configname General
+attr datetime 20220516-18:22:21
+attr experiment General
+attr inifile simulations/omnetpp.ini
+attr iterationvars ""
+attr iterationvarsf ""
+attr measurement ""
+attr network Raft
+attr processid 22822
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+param Raft.numServers 5
+param Raft.numClients 2
+param Raft.client[*].numServers 5
+param Raft.server[*].canFail true
+
+vector 0 Raft.statsCollector consensusTime:vector ETV
+attr interpolationmode linear
+attr title "Time required to reach consensus on a new leader, since network is leaderless, vector"
+attr unit s
+vector 1 Raft.client[1] commandResponseTime:vector ETV
+attr interpolationmode linear
+attr title "Total response time of client request, vector"
+attr unit s
+vector 2 Raft.client[0] commandResponseTime:vector ETV
+attr interpolationmode linear
+attr title "Total response time of client request, vector"
+attr unit s
+0	986 33 10 10 0.44524159555 0.44524159555 1 0.44524159555 0.44524159555 0.44524159555 0.19824007840791
+1	1019 34 49 49 0.93119536443 0.93119536443 1 0.046464405072 0.046464405072 0.046464405072 0.0021589409386949
+2	1053 35 62 62 1.015914752523 1.015914752523 1 0.046464405072 0.046464405072 0.046464405072 0.0021589409386949
+

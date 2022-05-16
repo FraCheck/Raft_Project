@@ -11,7 +11,7 @@ simple Server
  
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(1s, 4s));
-        double recoverTimeout @unit(s) = default(uniform(3s, 5s));
+        double recoverTimeout @unit(s) = default(2s);
         
     gates:
         input in[];
@@ -75,6 +75,7 @@ network Raft
         channel StatsCollectorChannel extends ned.DelayChannel
         {
             delay = 0;
+            @display("ls=red,0");
         }
         
     submodules:
