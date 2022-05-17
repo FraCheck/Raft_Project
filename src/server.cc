@@ -104,6 +104,11 @@ void Server::handleMessage(cMessage *msg) {
 
     if (msg == recoverEvent) {
         bubble("RECOVERED");
+        electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+            resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+            heartbeatEvent = new cMessage("heartbeatEvent");
+
+            rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
 
