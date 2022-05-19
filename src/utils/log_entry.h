@@ -87,6 +87,7 @@ public:
     }
 
     void append(LogEntry logEntry) {
+        string::size_type index = logEntry.index;
         if (logEntry.index != log.size() + 1)
             throw invalid_argument(
                     "Cannot append a log entry with index "

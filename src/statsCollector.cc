@@ -19,6 +19,7 @@ void StatsCollector::handleMessage(cMessage *msg) {
     if (msg->isSelfMessage()) {
 
     }
+
     // *** MESSAGES RECEIVED FROM SERVERS ***
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnStatsCollector(this);

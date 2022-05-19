@@ -7,8 +7,8 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
-#include "messages/server_statsCollector/leader_elected.h"
-#include "messages/server_statsCollector/server_failure.h"
+#include "messages/statsCollector/leader_elected.h"
+#include "messages/statsCollector/server_failure.h"
 #include "utils/printer.h"
 
 void Server::refreshDisplay() const {
@@ -220,7 +220,7 @@ void Server::startElection() {
 }
 
 void Server::registerLeaderElectionTime() {
-    LeaderElected *elected = new LeaderElected();
+    CommandSent *elected = new CommandSent();
     send(elected, "toStatsCollector");
 }
 
@@ -277,7 +277,6 @@ int Server::getLastLogTerm() {
         return 0;
 
     return log->getLast().term;
-
 }
 
 int Server::getLastLogIndex() {

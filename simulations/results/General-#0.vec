@@ -1,14 +1,14 @@
 version 2
-run General-0-20220516-18:22:21-22822
+run General-0-20220519-11:36:05-36517
 attr configname General
-attr datetime 20220516-18:22:21
+attr datetime 20220519-11:36:05
 attr experiment General
 attr inifile simulations/omnetpp.ini
 attr iterationvars ""
 attr iterationvarsf ""
 attr measurement ""
 attr network Raft
-attr processid 22822
+attr processid 36517
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -33,5 +33,9 @@ attr title "Total response time of client request, vector"
 attr unit s
 0	10	0.44524159555	0.44524159555
 1	49	0.93119536443	0.046464405072
+1	112	1.86239072886	0.046464405072
+1	177	2.79358609329	0.046464405072
 2	62	1.015914752523	0.046464405072
+2	126	2.031829505046	0.046464405072
+2	200	3.047744257569	0.046464405072
 

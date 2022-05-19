@@ -14,7 +14,7 @@ public:
     string lastCommand;
 
     simsignal_t commandResponseTimeSignal;
-    simtime_t command_timestamp;
+    simtime_t commandTimestamp;
 
     void scheduleSendCommand();
     void scheduleResendCommand();

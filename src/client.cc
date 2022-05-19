@@ -22,7 +22,7 @@ void Client::handleMessage(cMessage *msg) {
     // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == sendCommandEvent) {
-            command_timestamp = simTime();
+            commandTimestamp = simTime();
             // Select randomly the recipient
             int serverindex = uniform(0, numberOfServers - 1);
 
@@ -71,7 +71,7 @@ void Client::cancelResendCommandTimeout() {
 }
 
 void Client::emitCommandTimeResponseSignal() {
-    emit(commandResponseTimeSignal, simTime() - command_timestamp);
+    emit(commandResponseTimeSignal, simTime() - commandTimestamp);
 }
 
 string Client::buildRandomString(int length) {
