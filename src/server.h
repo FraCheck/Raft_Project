@@ -61,8 +61,6 @@ public:
     void cancelHeartbeat();
     void rescheduleElectionTimeout();
     void stopElectionTimeout();
-    void scheduleResendAppendEntries();
-    void cancelResendAppendEntries();
     void broadcast(cMessage *msg);
     void registerLeaderElectionTime();
 

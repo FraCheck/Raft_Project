@@ -29,7 +29,8 @@ public:
     AppendEntries(string name, int term, int leaderId, int prevLogIndex,
             int prevLogTerm, vector<LogEntry> entries, int leaderCommit) :
             RPCRequest(term) {
-        cMessage::setName(name.c_str());
+        if (!entries.empty())
+            cMessage::setName(to_string(entries[0].index).c_str());
         this->leaderId = leaderId;
         this->prevLogIndex = prevLogIndex;
         this->prevLogTerm = prevLogTerm;
@@ -41,7 +42,7 @@ public:
     void buildAndSendResponse(Server *server, bool success) const override;
 
     const char* getDisplayString() const override {
-        return "b=14,14,oval,yellow,black,1.2";
+        return "b=14,14,oval,yellow,black,1.2;t={}";
     }
 
     cMessage* dup() const override {

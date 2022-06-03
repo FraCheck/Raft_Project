@@ -32,7 +32,7 @@ void AppendEntries::handleOnServer(Server *server) const {
         goto appendEntries;
     }
 
-    // Check the previous LogEntry is the same
+    // Check if the previous LogEntry is the same
     if (server->log->getFromIndex(prevLogIndex).term != prevLogTerm) {
         buildAndSendResponse(server, false);
         return;

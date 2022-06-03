@@ -15,6 +15,8 @@ public:
     }
 
     void handleOnServer(Server *server) const override;
+    void buildAndSendNextAppendEntriesRequest(Server *server,
+            int senderIndex) const;
 
     const char* getDisplayString() const override {
         return RPCResponse::result ?

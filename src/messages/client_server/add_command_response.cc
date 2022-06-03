@@ -11,9 +11,6 @@ AddCommandResponse::AddCommandResponse(bool success, int leaderId,
 }
 
 void AddCommandResponse::handleOnClient(Client *client) const {
-    // Response received: cancel re-send timeout
-    client->cancelResendCommandTimeout();
-
     if (client->lastCommandId != requestId) {
         client->bubble("Received response for another request");
         return;
@@ -30,6 +27,9 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         client->scheduleResendCommand();
         return;
     }
+
+    // Response received: cancel re-send timeout
+    client->cancelResendCommandTimeout();
 
     client->emitCommandTimeResponseSignal();
     // Schedule the sending of a new command

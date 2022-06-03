@@ -10,17 +10,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
         // decrement nextIndex and retry."
 
         server->nextIndex[senderIndex]--;
-
-        int logEntryToSendIndex = server->nextIndex[senderIndex];
-        LogEntry logEntry = server->log->getFromIndex(logEntryToSendIndex);
-        LogEntry prevLogEntry = server->log->getFromIndex(
-                logEntryToSendIndex - 1);
-
-        AppendEntries *request = new AppendEntries("AppendEntries",
-                server->currentTerm, server->getIndex(), prevLogEntry.index,
-                prevLogEntry.term, { logEntry }, server->commitIndex);
-
-        server->send(request, "out", senderIndex);
+        buildAndSendNextAppendEntriesRequest(server, senderIndex);
         return;
     }
 
@@ -28,6 +18,10 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
 
     server->matchIndex[senderIndex] = lastLogIndex;
     server->nextIndex[senderIndex] = lastLogIndex + 1;
+
+    // Check if the sender needs other entries to be consistent
+    if (lastLogIndex < server->getLastLogIndex() && lastLogIndex != 0)
+        buildAndSendNextAppendEntriesRequest(server, senderIndex);
 
     // Check if commitIndex should be updated
 
@@ -58,4 +52,18 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
                 server->getIndex(), logEntry.commandId);
         server->send(response, "toclients", logEntry.clientId);
     }
+}
+
+void AppendEntriesResponse::buildAndSendNextAppendEntriesRequest(Server *server,
+        int senderIndex) const {
+    //        int logEntryToSendIndex = server->matchIndex[senderIndex] + 1;
+    int logEntryToSendIndex = server->nextIndex[senderIndex];
+    LogEntry logEntry = server->log->getFromIndex(logEntryToSendIndex);
+    LogEntry prevLogEntry = server->log->getFromIndex(logEntryToSendIndex - 1);
+
+    AppendEntries *request = new AppendEntries("AppendEntries",
+            server->currentTerm, server->getIndex(), prevLogEntry.index,
+            prevLogEntry.term, { logEntry }, server->commitIndex);
+
+    server->send(request, "out", senderIndex);
 }

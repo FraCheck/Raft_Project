@@ -7,10 +7,9 @@ simple Server
     parameters:
         volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
-        double retryAppendEntriesPeriod @unit(s) = default(0.15s);
  
         bool canFail = default(false);
-        double crashTimeout @unit(s) = default(uniform(1s, 4s));
+        double crashTimeout @unit(s) = default(uniform(1s, 3s));
         double recoverTimeout @unit(s) = default(2s);
         
     gates:

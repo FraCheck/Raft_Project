@@ -21,6 +21,7 @@ void AddCommand::handleOnServer(Server *server) const {
             if (logEntry.isCommitted)
                 buildAndSendResponse(server, true);
 
+            cout << "LogEntry already stored: return";
             return;
         }
     }
@@ -44,13 +45,9 @@ void AddCommand::handleOnServer(Server *server) const {
     AppendEntries *request = new AppendEntries("AppendEntries",
             server->currentTerm, server->getIndex(), prevLogEntryIndex,
             prevLogEntryTerm, { newEntry }, server->commitIndex);
-    server->broadcast(request);
-
-    // "If followers crash or run slowly, or if network packets are lost,
-    // the leader retries AppendEntries RPCs indefinitely
-    // until all followers eventually store all log entries."
-
-    server->scheduleResendAppendEntries();
+    for (int s = 0; s < server->gateSize("out"); s++)
+        if (server->nextIndex[s] == server->getLastLogIndex())
+            server->send(request->dup(), "out", s);
 }
 
 void AddCommand::buildAndSendResponse(Server *server, bool result) const {

@@ -89,7 +89,8 @@ void Server::finish() {
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
-        if (uniform(0, 1) > 0.3)
+        double theshold = state == LEADER ? 0.5 : 0.3;
+        if (uniform(0, 1) > theshold)
             return;
 
         bubble("CRASHED");
@@ -105,10 +106,10 @@ void Server::handleMessage(cMessage *msg) {
     if (msg == recoverEvent) {
         bubble("RECOVERED");
         electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-            resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
-            heartbeatEvent = new cMessage("heartbeatEvent");
+        resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+        heartbeatEvent = new cMessage("heartbeatEvent");
 
-            rescheduleElectionTimeout();
+        rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
 
@@ -116,7 +117,7 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     if (crashed) {
-        delete(msg);
+        delete (msg);
         return;
     }
 
@@ -132,29 +133,6 @@ void Server::handleMessage(cMessage *msg) {
 
         if (msg == electionTimeoutEvent) {
             startElection();
-        } else
-
-        // Re-send to all servers the log they need
-        // in order to be consistent with the leader
-        if (msg == resendAppendEntryEvent) {
-            bool allServersConsistent = true;
-            for (int i = 0; i < gateSize("out"); i++) {
-                if (log->size() >= nextIndex[i]) {
-                    allServersConsistent = false;
-
-                    AppendEntries *request = new AppendEntries("AppendEntries",
-                            currentTerm, getIndex(), getLastLogIndex(),
-                            getLastLogTerm(),
-                            { log->getFromIndex(nextIndex[i]) }, commitIndex);
-                    send(request, "out", i);
-                }
-            }
-            if (!allServersConsistent) { //retry appendentries until all servers are consistent with the log of the leader
-
-                simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
-                scheduleAt(simTime() + appendEntryPeriod,
-                        resendAppendEntryEvent);
-            }
         }
 
         return;
@@ -250,16 +228,6 @@ void Server::rescheduleElectionTimeout() {
 
 void Server::stopElectionTimeout() {
     cancelEvent(electionTimeoutEvent);
-}
-
-void Server::scheduleResendAppendEntries() {
-    cancelEvent(resendAppendEntryEvent);
-
-    simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
-    scheduleAt(simTime() + appendEntryPeriod, resendAppendEntryEvent);
-}
-void Server::cancelResendAppendEntries() {
-    cancelEvent(resendAppendEntryEvent);
 }
 
 void Server::scheduleCrash() {
