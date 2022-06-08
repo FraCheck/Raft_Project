@@ -16,7 +16,9 @@ class AddCommand: public HandableMessage {
 
 public:
     AddCommand(int commandId, string command, int clientId) {
-        cMessage::setName("AddCommand");
+        char messageName[32];
+        sprintf(messageName, " %d",commandId);
+        cMessage::setName(messageName);
         this->commandId = commandId;
         this->command = command;
         this->clientId = clientId;

@@ -6,16 +6,20 @@
 #include "../../statsCollector.h"
 
 class ServerFailure: public HandableMessage {
-
+    bool isLeader;
 public:
-    ServerFailure() {
-        cMessage::setName("LeaderFailure");
+    ServerFailure(bool isLeader = false) {
+        cMessage::setName("ServerFailure");
+        this->isLeader = isLeader;
     }
 
     void handleOnStatsCollector(StatsCollector *statsCollector) const override {
-        if (statsCollector->is_election_ongoing == false) {
-            statsCollector->is_election_ongoing = true;
-            statsCollector->server_failed = simTime();
+        if (isLeader){
+            if (statsCollector->is_election_ongoing == false) {
+                statsCollector->is_election_ongoing = true;
+                statsCollector->leader_failed = simTime();
+                EV << "[Debug] - LEADER FAILED";
+            }
         }
     }
     ;

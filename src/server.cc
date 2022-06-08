@@ -9,6 +9,8 @@
 #include "messages/server_server/request_vote/request_vote_response.h"
 #include "messages/statsCollector/leader_elected.h"
 #include "messages/statsCollector/server_failure.h"
+#include "messages/statsCollector/consensus_messages.h"
+
 #include "utils/printer.h"
 
 void Server::refreshDisplay() const {
@@ -55,7 +57,7 @@ void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
-
+    nbOfServers = par("numServers");
     rescheduleElectionTimeout();
 
     canFail = par("canFail");
@@ -89,16 +91,16 @@ void Server::finish() {
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
-        double theshold = state == LEADER ? 0.5 : 0.3;
-        if (uniform(0, 1) > theshold)
+        double theshold = state == LEADER ? 0.9 : 0.3;
+        if (uniform(0, 1) > theshold){
+            scheduleCrash();
             return;
+        }
 
+        EV << "MY THRESHOLD: " << theshold;
         bubble("CRASHED");
         crashed = true;
         scheduleRecover();
-
-        ServerFailure *failed = new ServerFailure();
-        send(failed, "toStatsCollector");
 
         return;
     }
@@ -132,7 +134,11 @@ void Server::handleMessage(cMessage *msg) {
         } else
 
         if (msg == electionTimeoutEvent) {
+            ServerFailure *failed = new ServerFailure(true);
+            send(failed, "toStatsCollector");
             startElection();
+            ConsensusMessages *reqVotes = new ConsensusMessages(nbOfServers-1);
+            send(reqVotes, "toStatsCollector");
         }
 
         return;
@@ -175,6 +181,7 @@ void Server::handleMessage(cMessage *msg) {
         // number, it rejects the request"
         if (rpc->term < currentTerm) {
             rpc->buildAndSendResponse(this, false);
+            return;
         }
     }
 
@@ -203,8 +210,12 @@ void Server::startElection() {
 }
 
 void Server::registerLeaderElectionTime() {
-    CommandSent *elected = new CommandSent();
+    LeaderElected *elected = new LeaderElected();
     send(elected, "toStatsCollector");
+}
+
+void Server::sendToStatsCollector(cMessage *msg){
+    send(msg, "toStatsCollector");
 }
 
 void Server::scheduleHeartbeat() {

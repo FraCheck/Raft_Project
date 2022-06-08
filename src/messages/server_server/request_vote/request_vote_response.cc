@@ -2,6 +2,8 @@
 #include "../append_entries/append_entries.h"
 
 void RequestVoteResponse::handleOnServer(Server *server) const {
+    if (server->state == FOLLOWER)
+        return;
     if (!result) {
         server->rescheduleElectionTimeout();
         return;

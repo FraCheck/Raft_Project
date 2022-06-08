@@ -4,7 +4,9 @@
 
 AddCommandResponse::AddCommandResponse(bool success, int leaderId,
         int requestId) {
-    cMessage::setName("AddCommandResponse");
+    char messageName[32];
+    sprintf(messageName, " %d",requestId);
+    cMessage::setName(messageName);
     this->success = success;
     this->leaderId = leaderId;
     this->requestId = requestId;

@@ -7,7 +7,7 @@ simple Server
     parameters:
         volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
- 
+ 		int numServers = default(5);
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(1s, 3s));
         double recoverTimeout @unit(s) = default(2s);
@@ -23,7 +23,7 @@ simple Server
 simple Client
 {
     parameters:
-        double sendCommandTimeout @unit(s) = default(uniform(0.8s, 1s));
+        double sendCommandTimeout @unit(s) = default(uniform(0.8s, 1.0s));
         double resendCommandTimeout @unit(s) = default(0.5s);
         int numServers = default(5);
         
@@ -43,7 +43,9 @@ simple StatsCollector
         
         @display("p=20,60");
         @signal[consensusTime](type="simtime_t");         
+        @signal[consensusMessages](type="int");
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless";unit=s;record=vector,mean,max,min;interpolationmode=linear);
+        @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers";record=vector,max, mean; interpolationmode=none);
     gates:
         input in[];        
 }

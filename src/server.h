@@ -55,8 +55,10 @@ public:
     bool canFail;
     bool crashed = false;
     simtime_t electionTimeout;
+    int nbOfServers;
 
     void startElection();
+    void sendToStatsCollector(cMessage *msg);
     void scheduleHeartbeat();
     void cancelHeartbeat();
     void rescheduleElectionTimeout();

@@ -5,10 +5,10 @@
 #include "../handable_message.h"
 #include "../../statsCollector.h"
 
-class CommandSent: public HandableMessage {
+class LeaderElected: public HandableMessage {
 
 public:
-    CommandSent() {
+    LeaderElected() {
         cMessage::setName("LeaderElected");
     }
 
@@ -16,13 +16,19 @@ public:
         if (statsCollector->is_election_ongoing == true) {
             statsCollector->is_election_ongoing = false;
             statsCollector->new_leader_elected = simTime();
+
+            // Emit signals at the end of election
             statsCollector->emitConsensusTime();
+            statsCollector->emitConsensunsMessges();
+
+            // Restore messages exchanged count for next election
+            statsCollector->nb_messagesToConsensus = 0;
         }
     }
     ;
 
     cMessage* dup() const override {
-        return new CommandSent();
+        return new LeaderElected();
     }
 };
 
