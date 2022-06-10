@@ -55,7 +55,7 @@ void Server::refreshDisplay() const {
 
 void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+    resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     nbOfServers = par("numServers");
     rescheduleElectionTimeout();
@@ -84,22 +84,31 @@ void Server::initialize() {
 }
 
 void Server::finish() {
-    cancelEvent(electionTimeoutEvent);
-    cancelEvent(resendAppendEntryEvent);
-    cancelEvent(heartbeatEvent);
+    cancelAndDelete(electionTimeoutEvent);
+    cancelAndDelete(heartbeatEvent);
+    cancelAndDelete(recoverEvent);
+    cancelAndDelete(resendAppendEntryEvent);
 }
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
         double theshold = state == LEADER ? 0.9 : 0.3;
-        if (uniform(0, 1) > theshold){
-            scheduleCrash();
+        if (uniform(0, 1) > theshold){  
+            cancelEvent(crashEvent);
+            scheduleCrash();         
             return;
         }
-
-        EV << "MY THRESHOLD: " << theshold;
+        if (state == LEADER)
+        {
+            votedFor = -1;
+            votesCount = 0;
+            state = FOLLOWER;
+        }
         bubble("CRASHED");
         crashed = true;
+        cancelEvent(crashEvent);
+        cancelEvent(heartbeatEvent);
+        cancelEvent(electionTimeoutEvent);
         scheduleRecover();
 
         return;
@@ -107,11 +116,14 @@ void Server::handleMessage(cMessage *msg) {
 
     if (msg == recoverEvent) {
         bubble("RECOVERED");
-        electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-        resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
-        heartbeatEvent = new cMessage("heartbeatEvent");
 
-        rescheduleElectionTimeout();
+        if (state == LEADER){
+            scheduleHeartbeat();
+        }
+        if (state == LEADER || state == CANDIDATE){
+            rescheduleElectionTimeout();
+        }
+        
         crashed = false;
         scheduleCrash();
 
@@ -131,6 +143,7 @@ void Server::handleMessage(cMessage *msg) {
                     getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
             scheduleHeartbeat();
+            delete heartbeat;
         } else
 
         if (msg == electionTimeoutEvent) {
@@ -140,7 +153,6 @@ void Server::handleMessage(cMessage *msg) {
             ConsensusMessages *reqVotes = new ConsensusMessages(nbOfServers-1);
             send(reqVotes, "toStatsCollector");
         }
-
         return;
     }
 
@@ -181,6 +193,7 @@ void Server::handleMessage(cMessage *msg) {
         // number, it rejects the request"
         if (rpc->term < currentTerm) {
             rpc->buildAndSendResponse(this, false);
+            cancelAndDelete(msg);
             return;
         }
     }
@@ -207,6 +220,7 @@ void Server::startElection() {
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
             getIndex(), getLastLogIndex(), getLastLogTerm());
     broadcast(requestvote);
+    delete requestvote;
 }
 
 void Server::registerLeaderElectionTime() {

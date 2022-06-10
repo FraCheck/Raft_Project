@@ -17,6 +17,7 @@ public:
     simtime_t commandTimestamp;
 
     void scheduleSendCommand();
+    void cancelSendCommandTimeout();
     void scheduleResendCommand();
     void cancelResendCommandTimeout();
     void emitCommandTimeResponseSignal();

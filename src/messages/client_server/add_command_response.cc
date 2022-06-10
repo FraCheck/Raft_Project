@@ -26,6 +26,7 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         client->send(request, "out", leaderId);
 
         // Set a timeout to retry the request if the server is not responding
+        client->cancelResendCommandTimeout();
         client->scheduleResendCommand();
         return;
     }
@@ -35,6 +36,7 @@ void AddCommandResponse::handleOnClient(Client *client) const {
 
     client->emitCommandTimeResponseSignal();
     // Schedule the sending of a new command
+    client->cancelSendCommandTimeout();
     client->scheduleSendCommand();
 }
 

@@ -24,12 +24,15 @@ void StatsCollector::handleMessage(cMessage *msg) {
     handableMsg->handleOnStatsCollector(this);
 
     cancelAndDelete(msg);
+    return;
 }
 
 void StatsCollector::emitConsensusTime(){
     emit(consensusTimeSignal, new_leader_elected - leader_failed);
+    EV << "[StatsCollector] Emitted time required to reach consensus: " << new_leader_elected - leader_failed << endl;
 }
 
 void StatsCollector::emitConsensunsMessges(){
     emit(consensusMessagesSignal, nb_messagesToConsensus);
+     EV << "[StatsCollector] Emitted messages number required to reach consensus: " << nb_messagesToConsensus << endl;
 }

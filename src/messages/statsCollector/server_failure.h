@@ -18,7 +18,7 @@ public:
             if (statsCollector->is_election_ongoing == false) {
                 statsCollector->is_election_ongoing = true;
                 statsCollector->leader_failed = simTime();
-                EV << "[Debug] - LEADER FAILED";
+                EV << "[StatsCollector] - Leader crashed: elections metrics are now monitored.";
             }
         }
     }

@@ -1,5 +1,6 @@
 #include "../request_vote/request_vote_response.h"
 #include "../append_entries/append_entries.h"
+#include "../../statsCollector/leader_elected.h"
 
 void RequestVoteResponse::handleOnServer(Server *server) const {
     if (server->state == FOLLOWER)
@@ -28,7 +29,8 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     server->state = LEADER;
     server->currentLeader = server->getIndex();
-    server->registerLeaderElectionTime();
+    LeaderElected *elected = new LeaderElected();
+    server->sendToStatsCollector(elected);
 
     // "When a leader first comes to power, it initializes all nextIndex values
     // to the index just after the last one in its log."
@@ -44,4 +46,5 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     server->broadcast(heartbeat);
     server->scheduleHeartbeat();
+    delete heartbeat;
 }

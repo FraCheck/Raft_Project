@@ -21,7 +21,7 @@ void AddCommand::handleOnServer(Server *server) const {
             if (logEntry.isCommitted)
                 buildAndSendResponse(server, true);
 
-            cout << "LogEntry already stored: return";
+            EV << "LogEntry already stored: return";
             return;
         }
     }
@@ -48,6 +48,7 @@ void AddCommand::handleOnServer(Server *server) const {
     for (int s = 0; s < server->gateSize("out"); s++)
         if (server->nextIndex[s] == server->getLastLogIndex())
             server->send(request->dup(), "out", s);
+    delete request;
 }
 
 void AddCommand::buildAndSendResponse(Server *server, bool result) const {

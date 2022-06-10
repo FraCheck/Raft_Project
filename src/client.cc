@@ -9,6 +9,9 @@ void Client::initialize() {
     numberOfServers = par("numServers");
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout");
+
+    sendCommandEvent = new cMessage("SendCommandEvent");
+    resendCommandEvent = new cMessage("ResendCommandEvent");
     scheduleSendCommand();
 
     // Signals registering
@@ -16,6 +19,8 @@ void Client::initialize() {
 }
 
 void Client::finish() {
+    cancelAndDelete(sendCommandEvent);
+    cancelAndDelete(resendCommandEvent);
 }
 
 void Client::handleMessage(cMessage *msg) {
@@ -30,19 +35,17 @@ void Client::handleMessage(cMessage *msg) {
             lastCommand = buildRandomString(5);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
-
-            resendCommandEvent = new cMessage("ResendCommandEvent");
+            
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
         } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
-
-            scheduleResendCommand();
+            
+            scheduleResendCommand();           
         }
-
-        cancelAndDelete(msg);
+       
         return;
     }
 
@@ -53,15 +56,15 @@ void Client::handleMessage(cMessage *msg) {
 }
 
 void Client::scheduleSendCommand() {
-    sendCommandEvent = new cMessage("SendCommandEvent");
-
     simtime_t sendCommandTimeout = sendCommandPeriod;
     scheduleAt(simTime() + sendCommandTimeout, sendCommandEvent);
 }
 
-void Client::scheduleResendCommand() {
-    resendCommandEvent = new cMessage("ResendCommandEvent");
+void Client::cancelSendCommandTimeout() {
+    cancelEvent(sendCommandEvent);
+}
 
+void Client::scheduleResendCommand() {
     simtime_t resendCommandTimeout = resendCommandPeriod;
     scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
 }
@@ -72,6 +75,7 @@ void Client::cancelResendCommandTimeout() {
 
 void Client::emitCommandTimeResponseSignal() {
     emit(commandResponseTimeSignal, simTime() - commandTimestamp);
+    EV << "[Client" << this->getIndex() << "] Emitted command execution response time: " << simTime() - commandTimestamp << endl;
 }
 
 string Client::buildRandomString(int length) {
