@@ -6,12 +6,11 @@
 
 void AppendEntries::handleOnServer(Server *server) const {
     server->currentLeader = leaderId;
-    if (server->state == CANDIDATE) {
-        // Accept the HeartBeat sender as Leader
-        server->state = FOLLOWER;
-        server->votesCount = 0;
-    }
-
+        if (server->state == CANDIDATE) {
+            // Accept the HeartBeat sender as Leader
+            server->state = FOLLOWER;
+            server->votesCount = 0;
+        }
     // "Reply false if log doesn't contain an entry at prevLogIndex
     // whose term matches prevLogTerm"
 
@@ -28,7 +27,7 @@ void AppendEntries::handleOnServer(Server *server) const {
 
     // 2. follower log should be replaced
     if (prevLogIndex == 0) {
-        server->log->eraseStartingFromIndex(0);
+        server->log->eraseStartingFromIndex(1);
         goto appendEntries;
     }
 
@@ -58,7 +57,7 @@ void AppendEntries::handleOnServer(Server *server) const {
     for (int i = 0; i < entries.size(); i++) {
         bool alreadyAppended = false;
         for (int logIndex = 1; logIndex <= server->log->size(); logIndex++)
-            if (server->log->getFromIndex(logIndex).index == entries[i].index) {
+            if (server->log->getFromIndex(logIndex).index == entries[i].index) {   // suspicious having the same index doesn t mean to be the same entry
                 alreadyAppended = true;
                 break;
             }
@@ -74,6 +73,9 @@ void AppendEntries::handleOnServer(Server *server) const {
         int lastLogIndex = server->getLastLogIndex();
         server->commitIndex =
                 lastLogIndex < leaderCommit ? lastLogIndex : leaderCommit;
+    }
+    for(int indexlog=server->commitIndex;indexlog>0;indexlog--){
+        server->log->commit(indexlog);
     }
 
     buildAndSendResponse(server, true);

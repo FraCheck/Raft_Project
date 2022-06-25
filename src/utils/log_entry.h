@@ -98,7 +98,7 @@ public:
     }
 
     void eraseStartingFromIndex(int index) {
-        auto first = log.cbegin() + index;
+        auto first = log.cbegin() + index - 1;
         auto last = log.cend();
 
         log.erase(first, last);
@@ -108,7 +108,7 @@ public:
         ostringstream out;
 
         for (LogEntry logEntry : log)
-            out << " " << logEntry.term << "-" << logEntry.index << " ";
+            out << " " << logEntry.term << "-" << logEntry.index << "-" << logEntry.command;
 
         return out.str();
     }

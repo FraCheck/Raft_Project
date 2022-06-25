@@ -5,7 +5,6 @@
 void RequestVote::handleOnServer(Server *server) const {
     // "Each server will vote for at most one candidate in a given term,
     // on a first come-first-served-basis"
-
     // Signal to StatsCollector that a new message is being exchanged in the network
     ConsensusMessages *reqVotes = new ConsensusMessages();
     server->sendToStatsCollector(reqVotes);
@@ -17,9 +16,9 @@ void RequestVote::handleOnServer(Server *server) const {
     }
 
     // Reject requests if the candidate log is not up to date
-    if (term <= server->getLastLogTerm()
-            && (lastLogTerm != server->getLastLogTerm()
-                    || lastLogIndex < server->getLastLogIndex())) {
+    if (
+         (lastLogTerm < server->getLastLogTerm()
+                    || (lastLogTerm == server->getLastLogTerm()) &&  lastLogIndex < server->getLastLogIndex())) {
         buildAndSendResponse(server, false);
         return;
     }

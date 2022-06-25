@@ -43,7 +43,7 @@ simple StatsCollector
         
         @display("p=20,60");
         @signal[consensusTime](type="simtime_t");         
-        @signal[consensusMessages](type="int");
+        @signal[consensusMessages](type="long");
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless";unit=s;record=vector,mean,max,min;interpolationmode=linear);
         @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers";record=vector,max, mean; interpolationmode=none);
     gates:

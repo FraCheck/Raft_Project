@@ -98,12 +98,12 @@ void Server::handleMessage(cMessage *msg) {
             scheduleCrash();         
             return;
         }
-        if (state == LEADER)
-        {
+
             votedFor = -1;
             votesCount = 0;
             state = FOLLOWER;
-        }
+            currentLeader= -1;
+
         bubble("CRASHED");
         crashed = true;
         cancelEvent(crashEvent);
@@ -116,18 +116,10 @@ void Server::handleMessage(cMessage *msg) {
 
     if (msg == recoverEvent) {
         bubble("RECOVERED");
-
-        if (state == LEADER){
-            scheduleHeartbeat();
-        }
-        if (state == LEADER || state == CANDIDATE){
-            rescheduleElectionTimeout();
-        }
-        
+        rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
-
-        return;
+         return;
     }
 
     if (crashed) {
@@ -180,6 +172,8 @@ void Server::handleMessage(cMessage *msg) {
             state = FOLLOWER;
         }
     }
+
+
 
     // Generic behavior for RPCRequest messages
     if (dynamic_cast<RPCRequest*>(msg) != nullptr) {
