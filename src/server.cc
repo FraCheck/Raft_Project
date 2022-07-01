@@ -60,6 +60,8 @@ void Server::initialize() {
     nbOfServers = par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
+    channel_omission_probability = getParentModule()->par("channel_omission_probability");
+    
     rescheduleElectionTimeout();
 
     canFail = par("canFail");
@@ -94,7 +96,7 @@ void Server::finish() {
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
-        double theshold = state == LEADER ? leader_failure_probability : server_failure_probability;
+        double theshold = state == LEADER ? 1-leader_failure_probability : 1-server_failure_probability;
         if (uniform(0, 1) > theshold){  
             cancelEvent(crashEvent);
             scheduleCrash();         
@@ -107,6 +109,7 @@ void Server::handleMessage(cMessage *msg) {
             currentLeader= -1;
 
         bubble("CRASHED");
+        EV << "[Server" << getIndex() << " just crashed." << endl;
         crashed = true;
         cancelEvent(crashEvent);
         cancelEvent(heartbeatEvent);
@@ -152,6 +155,15 @@ void Server::handleMessage(cMessage *msg) {
 
     // *** EXTERNAL MESSAGES ***
     // All messages from this point on are sent from other servers/clients
+
+    // OMISSIONS OF THE CHANNEL
+    // We simulate channel omissions, randomly deleting messages coming from the network
+    double theshold =  1-channel_omission_probability;
+    if (uniform(0, 1) > theshold){
+        bubble("CHANNEL OMISSION");
+        cancelAndDelete(msg);
+        return;
+    }
 
     // Generic behavior for RPC messages
     if (dynamic_cast<RPC*>(msg) != nullptr) {

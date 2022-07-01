@@ -10,6 +10,7 @@ using namespace std;
 class Client: public cSimpleModule {
 public:
     int numberOfServers;
+    double channel_omission_probability;
     int lastCommandId;
     string lastCommand;
 

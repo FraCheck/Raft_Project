@@ -7,8 +7,8 @@ simple Server
     parameters:
         volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
-        double server_failure_probability = default(0.3);
-        double leader_failure_Probability = default(0.9);
+        double server_failure_probability = default(0.2);
+        double leader_failure_Probability = default(0.2);
  		int numServers = default(5);
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(1s, 3s));
@@ -58,6 +58,8 @@ network Raft
     parameters:
         int numServers = default(5);
         int numClients = default(1);
+        
+        double channel_omission_probability = default(0.05);
 
         // The system should satisfies the following timing requirement:
 		// broadcastTime << electionTimeout << MTBF

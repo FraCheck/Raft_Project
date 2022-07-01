@@ -7,6 +7,7 @@
 
 void Client::initialize() {
     numberOfServers = par("numServers");
+    channel_omission_probability = getParentModule()->par("channel_omission_probability");
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout").doubleValue();
 
@@ -47,6 +48,15 @@ void Client::handleMessage(cMessage *msg) {
             scheduleResendCommand();           
         }
        
+        return;
+    }
+    
+    // OMISSIONS OF THE CHANNEL
+    // We simulate channel omissions, randomly deleting messages coming from the network
+    double theshold =  1-channel_omission_probability;
+    if (uniform(0, 1) > theshold){
+        bubble("CHANNEL OMISSION");
+        cancelAndDelete(msg);
         return;
     }
 

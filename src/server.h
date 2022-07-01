@@ -58,7 +58,8 @@ public:
     int nbOfServers;
     double server_failure_probability;
     double leader_failure_probability;
-
+    double channel_omission_probability;
+    
     void startElection();
     void sendToStatsCollector(cMessage *msg);
     void scheduleHeartbeat();
