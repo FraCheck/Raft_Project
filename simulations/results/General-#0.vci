@@ -1,15 +1,15 @@
-file 2703 1656147358                                            
+file 277754 1656704734                                          
 version 2
-run General-0-20220625-10:49:29-12088
+run General-0-20220701-21:45:01-1992
 attr configname General
-attr datetime 20220625-10:49:29
+attr datetime 20220701-21:45:01
 attr experiment General
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsf ""
 attr measurement ""
 attr network Raft
-attr processid 12088
+attr processid 1992
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -18,6 +18,7 @@ attr seedset 0
 param Raft.numServers 5
 param Raft.numClients 2
 param Raft.client[*].numServers 5
+param Raft.client[*].sendCommandTimeout 0.9s
 param Raft.statsCollector.numServers 5
 param Raft.server[*].numServers 5
 param Raft.server[*].canFail true
@@ -27,18 +28,18 @@ attr interpolationmode linear
 attr title "Time required to reach consensus on a new leader, since network is leaderless, vector"
 attr unit s
 vector 1 Raft.statsCollector consensusMessages:vector ETV
-attr interpolationmode none
+attr interpolationmode linear
 attr title "Number of messages exchanged on the network to reach consensus among servers, vector"
-vector 2 Raft.client[1] commandResponseTime:vector ETV
+vector 2 Raft.client[0] commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-vector 3 Raft.client[0] commandResponseTime:vector ETV
+vector 3 Raft.client[1] commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-0	1269 411 16 1081 0.44524159555 17.639484976593 11 0.015488135024 1.808001727196 4.994215408286 7.3945237322185
-1	1680 270 16 1081 0.44524159555 17.639484976593 11 3 31 82 1262
-2	1950 413 55 1092 0.93119536443 17.662717179129 11 0.030976270048 3.408422754534 8.861871990621 22.870023205448
-3	2363 338 68 1001 1.015914752523 16.549240965472 9 0.030976270048 3.608416945168 7.824187838413 21.212854663982
+0	1315 65275 30 192829 0.453926305846 3195.287389865226 1557 0.015488135024 4.837125472012 478.33974060661 644.24138685735
+1	66590 45305 30 192829 0.453926305846 3195.287389865226 1557 3 52 9194 87342
+2	111895 82382 55 192897 0.564431682267 3195.814744686851 1967 0.030976270048 8.222268117552 1623.6371065411 3836.9696595145
+3	194277 83475 77 192880 0.87979576532 3195.683174576824 1993 0.030976270048 8.271728360447 1602.4097512292 3757.0220755385
 

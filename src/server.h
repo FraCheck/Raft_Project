@@ -50,12 +50,14 @@ public:
     // (initialized to 0, increases monotonically)
     int *matchIndex = new int(getVectorSize());
 
-    int currentLeader;
+    int currentLeader = -1;
     int votesCount = 0;
     bool canFail;
     bool crashed = false;
     simtime_t electionTimeout;
     int nbOfServers;
+    double server_failure_probability;
+    double leader_failure_probability;
 
     void startElection();
     void sendToStatsCollector(cMessage *msg);

@@ -8,7 +8,7 @@
 void Client::initialize() {
     numberOfServers = par("numServers");
     resendCommandPeriod = par("resendCommandTimeout");
-    sendCommandPeriod = par("sendCommandTimeout");
+    sendCommandPeriod = par("sendCommandTimeout").doubleValue();
 
     sendCommandEvent = new cMessage("SendCommandEvent");
     resendCommandEvent = new cMessage("ResendCommandEvent");
@@ -36,13 +36,14 @@ void Client::handleMessage(cMessage *msg) {
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
             
+            cancelResendCommandTimeout();
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
         } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
                     serverindex);
-            
+
             scheduleResendCommand();           
         }
        
@@ -56,7 +57,7 @@ void Client::handleMessage(cMessage *msg) {
 }
 
 void Client::scheduleSendCommand() {
-    simtime_t sendCommandTimeout = sendCommandPeriod;
+    simtime_t sendCommandTimeout = exponential(sendCommandPeriod);
     scheduleAt(simTime() + sendCommandTimeout, sendCommandEvent);
 }
 

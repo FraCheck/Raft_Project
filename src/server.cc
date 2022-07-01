@@ -58,6 +58,8 @@ void Server::initialize() {
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     nbOfServers = par("numServers");
+    server_failure_probability = par("server_failure_probability");
+    leader_failure_probability = par("leader_failure_Probability");
     rescheduleElectionTimeout();
 
     canFail = par("canFail");
@@ -92,7 +94,7 @@ void Server::finish() {
 
 void Server::handleMessage(cMessage *msg) {
     if (msg == crashEvent) {
-        double theshold = state == LEADER ? 0.9 : 0.3;
+        double theshold = state == LEADER ? leader_failure_probability : server_failure_probability;
         if (uniform(0, 1) > theshold){  
             cancelEvent(crashEvent);
             scheduleCrash();         

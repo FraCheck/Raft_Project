@@ -7,6 +7,8 @@ simple Server
     parameters:
         volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
+        double server_failure_probability = default(0.3);
+        double leader_failure_Probability = default(0.9);
  		int numServers = default(5);
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(1s, 3s));
@@ -23,7 +25,7 @@ simple Server
 simple Client
 {
     parameters:
-        double sendCommandTimeout @unit(s) = default(uniform(0.8s, 1.0s));
+        volatile double sendCommandTimeout @unit(s) = default(0.9s);
         double resendCommandTimeout @unit(s) = default(0.5s);
         int numServers = default(5);
         
@@ -45,7 +47,7 @@ simple StatsCollector
         @signal[consensusTime](type="simtime_t");         
         @signal[consensusMessages](type="long");
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless";unit=s;record=vector,mean,max,min;interpolationmode=linear);
-        @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers";record=vector,max, mean; interpolationmode=none);
+        @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers";record=vector,max, mean; interpolationmode=linear);
     gates:
         input in[];        
 }
@@ -61,11 +63,6 @@ network Raft
 		// broadcastTime << electionTimeout << MTBF
         double broadcastTime @unit(ms) = default(uniform(10ms, 20ms));
         double MTBF @unit(d) = default(uniform(100d, 200d));
-		
-		// TO-DO SIGNALS AND STATISTICS
-		@signal[serverMessageSent](type="int");
-		@signal[messagesNumToConsensus](type="int");
-		@statistic[messagesNumToConsensus](title="Number of messages required to reach consensus";record=vector, timeavg, max, mean;interpolationmode=sample-hold);
 	
 		
     types:
