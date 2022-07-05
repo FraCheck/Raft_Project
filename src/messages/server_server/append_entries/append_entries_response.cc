@@ -4,7 +4,7 @@
 
 void AppendEntriesResponse::handleOnServer(Server *server) const {
     int senderIndex = getArrivalGate()->getIndex();
-
+    if(!successterm) return;
     if (!result) {
         // "If AppendEntries fails because of log inconsistency:
         // decrement nextIndex and retry."
@@ -16,8 +16,14 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
 
     // "If successful: update nextIndex and matchIndex for follower."
 
-    server->matchIndex[senderIndex] = lastLogIndex;
+
+        server->matchIndex[senderIndex] = lastLogIndex;
+     if(lastLogIndex < server->log->size() ){
     server->nextIndex[senderIndex] = lastLogIndex + 1;
+     }
+     else {
+         server->nextIndex[senderIndex] = server->log->size() +1 ;
+     }
 
     // Check if the sender needs other entries to be consistent
     if (lastLogIndex < server->getLastLogIndex() && lastLogIndex != 0)
@@ -39,7 +45,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
     // the entry to its state machine and returns the result of that
     // execution to the client."
 
-    for (int logIndex = server->commitIndex; logIndex > 0; logIndex--) {
+    for (int logIndex = (server->commitIndex > server->log->size() ? server->log->size() : server->commitIndex); logIndex > 0; logIndex--) {
         LogEntry logEntry = server->log->getFromIndex(logIndex);
         if (logEntry.isCommitted)
             break;

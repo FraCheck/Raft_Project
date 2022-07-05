@@ -200,7 +200,9 @@ void Server::handleMessage(cMessage *msg) {
         // "If a server receives a request with a stale term
         // number, it rejects the request"
         if (rpc->term < currentTerm) {
-            rpc->buildAndSendResponse(this, false);
+            AppendEntriesResponse *response = new AppendEntriesResponse(
+                        currentTerm, false, true, getLastLogIndex());
+                send(response, "out", msg->getArrivalGate()->getIndex());
             cancelAndDelete(msg);
             return;
         }

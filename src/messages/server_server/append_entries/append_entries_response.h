@@ -8,10 +8,12 @@ class AppendEntriesResponse: public HandableMessage, public RPCResponse {
 public:
     // Index of the last LogEntry added in the follower log
     int lastLogIndex;
+    bool successterm;
 
-    AppendEntriesResponse(int term, bool success, int lastLogIndex) :
-            RPCResponse(term, success) {
+    AppendEntriesResponse(int term, bool successterm,bool successconsistency, int lastLogIndex) :
+            RPCResponse(term, successconsistency) {
         this->lastLogIndex = lastLogIndex;
+        this->successterm= successterm;
     }
 
     void handleOnServer(Server *server) const override;
@@ -24,7 +26,7 @@ public:
     }
 
     cMessage* dup() const override {
-        return new AppendEntriesResponse(term, result, lastLogIndex);
+        return new AppendEntriesResponse(term, successterm,result, lastLogIndex);
     }
 };
 
