@@ -57,7 +57,7 @@ void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
-    nbOfServers = par("numServers");
+    nbOfServers = getParentModule()->getParentModule()->par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
     channel_omission_probability = getParentModule()->getParentModule()->par("channel_omission_probability");

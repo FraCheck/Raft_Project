@@ -6,7 +6,7 @@
 #include "utils/unique_id.h"
 
 void Client::initialize() {
-    numberOfServers = par("numServers");
+    numberOfServers = getParentModule()->par("numServers");
     channel_omission_probability = getParentModule()->par("channel_omission_probability");
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout").doubleValue();

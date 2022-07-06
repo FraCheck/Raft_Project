@@ -4,7 +4,7 @@
 #include "messages/handable_message.h"
 
 void StatsCollector::initialize() {
-    numberOfServers = par("numServers");
+    numberOfServers = getParentModule()->par("numServers");
     // Signals registering
     consensusTimeSignal = registerSignal("consensusTime");
     consensusMessagesSignal = registerSignal("consensusMessages");

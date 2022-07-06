@@ -12,8 +12,6 @@ simple Server
         volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
         double server_failure_probability = default(0.2);
         double leader_failure_Probability = default(0.2);
-        int numServers = default(5);
-        int numClients = default(1);
         bool canFail = default(false);
         double crashTimeout @unit(s) = default(uniform(1s, 3s));
         double recoverTimeout @unit(s) = default(2s);
@@ -45,7 +43,6 @@ simple Client
 simple StatsCollector
 {
     parameters:
-        int numServers = default(5);
 
         @display("p=20,60");
         @signal[consensusTime](type="simtime_t");
@@ -68,9 +65,6 @@ simple DelayQueue
 
 module ServerNode
 {
-    parameters:
-        int numServers = default(5);
-        int numClients = default(1);
     gates:
         input port_in[];
         input port_fromclients[];
