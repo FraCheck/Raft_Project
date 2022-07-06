@@ -4,6 +4,7 @@
 void DelayQueue::initialize() {
     numberOfServers = getParentModule()->getParentModule()->par("numServers");
     numberOfClients = getParentModule()->getParentModule()->par("numClients");
+    networkDelaysPresent = getParentModule()->getParentModule()->par("networkDelaysPresent");
     avgServiceTime = par("avgServiceTime").doubleValue();
     isDelayQueueBusy = false;
     msgInService = endOfServiceMsg = nullptr;
@@ -43,18 +44,23 @@ void DelayQueue::handleMessage(cMessage *msg)
     }
     else { // packet from other module has arrived
 
-        // Setting arrival timestamp as msg field
-        msg->setTimestamp();
+        // If network delays are disabled by parameter, just forward the message
+        if (!networkDelaysPresent){
+            send(msg, "out");
+            return;
+        }
 
         if (isDelayQueueBusy) {
             putPacketInQueue(msg);
         }
-        else { // DelayQueue idle, start service right away
+
+        else {
+            // DelayQueue idle, start service right away
             // Put the message in service and start it
             msgInService = msg;
             startPacketService();
 
-            //server is now busy
+            // Atleast a message is now delayed
             isDelayQueueBusy=true;
         }
     }

@@ -11,6 +11,7 @@ public:
     int numberOfClients;
     double avgServiceTime;
     bool isDelayQueueBusy;
+    bool networkDelaysPresent;
     cMessage *msgInService;
     cMessage *endOfServiceMsg;
     cQueue queue;
