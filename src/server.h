@@ -27,7 +27,7 @@ public:
     int votedFor = -1;
 
     // Log entries
-    LogEntryVector *log = new LogEntryVector(getIndex());
+    LogEntryVector *log;
 
     // *** VOLATILE STATE ON ALL SERVERS ***
 

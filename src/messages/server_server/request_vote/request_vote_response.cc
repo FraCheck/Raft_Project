@@ -28,7 +28,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
         return;
 
     server->state = LEADER;
-    server->currentLeader = server->getIndex();
+    server->currentLeader = server->getParentModule()->getIndex();
     LeaderElected *elected = new LeaderElected();
     server->sendToStatsCollector(elected);
 
@@ -41,7 +41,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     }
 
     AppendEntries *heartbeat = new AppendEntries("Heartbeat",
-            server->currentTerm, server->getIndex(), server->getLastLogIndex(),
+            server->currentTerm, server->getParentModule()->getIndex(), server->getLastLogIndex(),
             server->getLastLogTerm(), { }, server->commitIndex);
 
     server->broadcast(heartbeat);

@@ -82,6 +82,7 @@ void AppendEntries::handleOnServer(Server *server) const {
 }
 
 void AppendEntries::buildAndSendResponse(Server *server, bool success) const {
+    //EV << "SERVER " << server->getParentModule()->getIndex() << " is sending out appendResponse to queue: " << getArrivalGate()->getName() << "__" << getArrivalGate()->getIndex() << endl;
     AppendEntriesResponse *response = new AppendEntriesResponse(
             server->currentTerm, true, success, server->getLastLogIndex());
     server->send(response, "out", getArrivalGate()->getIndex());

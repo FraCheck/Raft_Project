@@ -43,11 +43,14 @@ void AddCommand::handleOnServer(Server *server) const {
         prevLogEntryTerm = 0;
     }
     AppendEntries *request = new AppendEntries("AppendEntries",
-            server->currentTerm, server->getIndex(), prevLogEntryIndex,
+            server->currentTerm, server->getParentModule()->getIndex(), prevLogEntryIndex,
             prevLogEntryTerm, { newEntry }, server->commitIndex);
-    for (int s = 0; s < server->gateSize("out"); s++)
+    for (int s = 0; s < server->gateSize("out"); s++){
+        //EV << "S: " << s << endl;
+        //EV << "server->nextIndex[s] = " << server->nextIndex[s] << "; server->getLastLogIndex()= " <<  server->getLastLogIndex()<<endl;
         if (server->nextIndex[s] == server->getLastLogIndex())
             server->send(request->dup(), "out", s);
+    }
     delete request;
 }
 

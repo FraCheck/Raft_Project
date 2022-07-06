@@ -55,7 +55,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
 
         // Send to client response corresponding to new entry committed
         AddCommandResponse *response = new AddCommandResponse(true,
-                server->getIndex(), logEntry.commandId);
+                server->getParentModule()->getIndex(), logEntry.commandId);
         server->send(response, "toclients", logEntry.clientId);
     }
 }
@@ -68,7 +68,7 @@ void AppendEntriesResponse::buildAndSendNextAppendEntriesRequest(Server *server,
     LogEntry prevLogEntry = server->log->getFromIndex(logEntryToSendIndex - 1);
 
     AppendEntries *request = new AppendEntries("AppendEntries",
-            server->currentTerm, server->getIndex(), prevLogEntry.index,
+            server->currentTerm, server->getParentModule()->getIndex(), prevLogEntry.index,
             prevLogEntry.term, { logEntry }, server->commitIndex);
 
     server->send(request, "out", senderIndex);

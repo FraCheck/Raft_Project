@@ -35,7 +35,7 @@ void Server::refreshDisplay() const {
     dispStr.parse(out.str().c_str());
 
     ostringstream labelText;
-    labelText << padOut(to_string(getIndex()), 3)
+    labelText << padOut(to_string(getParentModule()->getIndex()), 3)
             << padOut(to_string(currentTerm), 6)
             << padOut(to_string(votedFor), 6)
             << padOut(to_string(commitIndex), 8)
@@ -43,7 +43,7 @@ void Server::refreshDisplay() const {
             << "]";
 
     label->setText(labelText.str().c_str());
-    label->setPosition(cFigure::Point(20, 6 + getIndex() * 6));
+    label->setPosition(cFigure::Point(20, 6 + getParentModule()->getIndex() * 6));
     label->setFont(cFigure::Font("Courier New"));
     label->setAnchor(cFigure::ANCHOR_NW);
 
@@ -57,6 +57,7 @@ void Server::initialize() {
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
+    log = new LogEntryVector(getParentModule()->getIndex());
     nbOfServers = getParentModule()->getParentModule()->par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
@@ -109,7 +110,7 @@ void Server::handleMessage(cMessage *msg) {
             currentLeader= -1;
 
         bubble("CRASHED");
-        EV << "[Server" << getIndex() << " just crashed." << endl;
+        EV << "[Server" << getParentModule()->getIndex() << " just crashed." << endl;
         crashed = true;
         cancelEvent(crashEvent);
         cancelEvent(heartbeatEvent);
@@ -136,7 +137,7 @@ void Server::handleMessage(cMessage *msg) {
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
             AppendEntries *heartbeat = new AppendEntries("Heartbeat",
-                    currentTerm, getIndex(), getLastLogIndex(),
+                    currentTerm, getParentModule()->getIndex(), getLastLogIndex(),
                     getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
             scheduleHeartbeat();
@@ -161,6 +162,7 @@ void Server::handleMessage(cMessage *msg) {
     double theshold =  1-channel_omission_probability;
     if (uniform(0, 1) > theshold){
         bubble("CHANNEL OMISSION");
+        EV << "[Server " << getParentModule()->getIndex() << "] Message not received because of channel omission."<<endl;
         cancelAndDelete(msg);
         return;
     }
@@ -220,15 +222,15 @@ void Server::startElection() {
     currentTerm = currentTerm + 1;
     votesCount = 0; // Reset votes count from previous election
 
-    EV << "[Server" << getIndex() << "] Start election at " << simTime()
+    EV << "[Server" << getParentModule()->getIndex() << "] Start election at " << simTime()
               << " , term = " << currentTerm << endl;
 
     state = CANDIDATE;
     votesCount++;
-    votedFor = getIndex();
+    votedFor = getParentModule()->getIndex();
 
     RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
-            getIndex(), getLastLogIndex(), getLastLogTerm());
+            getParentModule()->getIndex(), getLastLogIndex(), getLastLogTerm());
     broadcast(requestvote);
     delete requestvote;
 }
