@@ -15,7 +15,7 @@
 
 void Server::refreshDisplay() const {
     ostringstream out;
-    cDisplayString &dispStr = getDisplayString();
+    cDisplayString &dispStr = getParentModule()->getDisplayString();
 
     if (state == FOLLOWER)
         out << "i=block/circle;";
@@ -47,7 +47,7 @@ void Server::refreshDisplay() const {
     label->setFont(cFigure::Font("Courier New"));
     label->setAnchor(cFigure::ANCHOR_NW);
 
-    cCanvas *canvas = getParentModule()->getCanvas();
+    cCanvas *canvas = getParentModule()->getParentModule()->getCanvas();
     if (canvas->findFigure(label) != -1)
         canvas->removeFigure(label);
     canvas->addFigure(label);
@@ -60,7 +60,7 @@ void Server::initialize() {
     nbOfServers = par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
-    channel_omission_probability = getParentModule()->par("channel_omission_probability");
+    channel_omission_probability = getParentModule()->getParentModule()->par("channel_omission_probability");
     
     rescheduleElectionTimeout();
 
@@ -83,7 +83,7 @@ void Server::initialize() {
     title->setFont(cFigure::Font("Courier New"));
     title->setAnchor(cFigure::ANCHOR_NW);
 
-    cCanvas *canvas = getParentModule()->getCanvas();
+    cCanvas *canvas = getParentModule()->getParentModule()->getCanvas();
     canvas->addFigure(title);
 }
 
