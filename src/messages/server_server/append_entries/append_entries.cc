@@ -57,7 +57,7 @@ void AppendEntries::handleOnServer(Server *server) const {
     for (int i = 0; i < entries.size(); i++) {
         bool alreadyAppended = false;
         for (int logIndex = 1; logIndex <= server->log->size(); logIndex++)
-            if (server->log->getFromIndex(logIndex).index == entries[i].index) {   // suspicious having the same index doesn t mean to be the same entry
+            if (server->log->getFromIndex(logIndex).index == entries[i].index) {
                 alreadyAppended = true;
                 break;
             }
@@ -83,7 +83,7 @@ void AppendEntries::handleOnServer(Server *server) const {
 
 void AppendEntries::buildAndSendResponse(Server *server, bool success) const {
     AppendEntriesResponse *response = new AppendEntriesResponse(
-            server->currentTerm, success, server->getLastLogIndex());
+            server->currentTerm, true, success, server->getLastLogIndex());
     server->send(response, "out", getArrivalGate()->getIndex());
 }
 
