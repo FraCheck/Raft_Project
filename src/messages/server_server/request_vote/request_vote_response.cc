@@ -19,7 +19,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     // a majority of the servers in the full cluster for the same term."
 
     // Check if votes are enough
-    if (server->votesCount <= server->getVectorSize() / 2) {
+    if (server->votesCount <= server->getServerNodeVectorSize() / 2) {
         server->rescheduleElectionTimeout();
         return;
     }
@@ -35,7 +35,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     // "When a leader first comes to power, it initializes all nextIndex values
     // to the index just after the last one in its log."
 
-    for (int i = 0; i < server->getVectorSize(); i++) {
+    for (int i = 0; i < server->getServerNodeVectorSize(); i++) {
         server->nextIndex[i] = server->getLastLogIndex() + 1;
         server->matchIndex[i] = 0;
     }

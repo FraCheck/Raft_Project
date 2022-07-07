@@ -28,9 +28,9 @@ void Server::refreshDisplay() const {
         out << "i2=status/stop;";
 
     if (state == LEADER)
-        out << "t=nextIndex: " << printElements(nextIndex, getVectorSize())
+        out << "t=nextIndex: " << printElements(nextIndex, getParentModule()->getVectorSize())
                 << endl << "matchIndex: "
-                << printElements(matchIndex, getVectorSize());
+                << printElements(matchIndex, getParentModule()->getVectorSize());
 
     dispStr.parse(out.str().c_str());
 
@@ -58,6 +58,8 @@ void Server::initialize() {
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     log = new LogEntryVector(getParentModule()->getIndex());
+    nextIndex= new int(getServerNodeVectorSize());
+    matchIndex = new int(getServerNodeVectorSize());
     nbOfServers = getParentModule()->getParentModule()->par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
@@ -294,4 +296,8 @@ int Server::getLastLogIndex() {
         return 0;
 
     return log->getLast().index;
+}
+
+int Server::getServerNodeVectorSize(){
+    return getParentModule()->getVectorSize();
 }

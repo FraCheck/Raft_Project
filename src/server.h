@@ -44,11 +44,11 @@ public:
 
     // For each server, index of the next LogEntry to send
     // (initialized to leader last log index + 1)
-    int *nextIndex = new int(getVectorSize());
+    int *nextIndex;
 
     // For each server, index of the last log entry known to be replicated
     // (initialized to 0, increases monotonically)
-    int *matchIndex = new int(getVectorSize());
+    int *matchIndex;
 
     int currentLeader = -1;
     int votesCount = 0;
@@ -71,6 +71,7 @@ public:
 
     int getLastLogTerm();
     int getLastLogIndex();
+    int getServerNodeVectorSize();
 
 private:
     // Message to trigger the election timeout

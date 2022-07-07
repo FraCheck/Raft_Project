@@ -8,8 +8,8 @@ package raft_project.simulations;
 simple Server
 {
     parameters:
-        volatile double electionTimeout @unit(s) = default(uniform(0.4s,0.5s));
-        volatile double heartbeatPeriod @unit(s) = default(uniform(0.2s,0.25s));
+        volatile double electionTimeout @unit(s) = default(uniform(0.150s,0.300s));
+        volatile double heartbeatPeriod @unit(s) = default(uniform(0.100s,0.150s));
         double server_failure_probability = default(0.2);
         double leader_failure_Probability = default(0.2);
         bool canFail = default(false);
@@ -56,7 +56,7 @@ simple StatsCollector
 simple DelayQueue
 {
     parameters:
-        volatile double avgServiceTime @unit(s) = default(0.02s);
+        volatile double avgServiceTime @unit(s) = default(0.01s);
         @display("i=block/queue");
     gates:
         input in;
@@ -127,7 +127,11 @@ network Raft
 
         // The system should satisfies the following timing requirement:
 		// broadcastTime << electionTimeout << MTBF
-        double broadcastTime @unit(ms) = default(uniform(10ms, 20ms));
+
+        //The broadcast time should be an order of magnitude less than the 
+        // election timeout so that leaders can reliably send the heartbeat messages
+        //required to keep followers from starting elections
+        double broadcastTime @unit(ms) = default(uniform(0.010s, 0.020s));
         double MTBF @unit(d) = default(uniform(100d, 200d));
 
 
