@@ -8,7 +8,6 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
     if (!result) {
         // "If AppendEntries fails because of log inconsistency:
         // decrement nextIndex and retry."
-
         server->nextIndex[senderIndex]--;
         buildAndSendNextAppendEntriesRequest(server, senderIndex);
         return;
@@ -64,14 +63,27 @@ void AppendEntriesResponse::buildAndSendNextAppendEntriesRequest(Server *server,
         int senderIndex) const {
     //        int logEntryToSendIndex = server->matchIndex[senderIndex] + 1;
     int logEntryToSendIndex = server->nextIndex[senderIndex];
-    if (logEntryToSendIndex==-1 || logEntryToSendIndex==0)
+    if (logEntryToSendIndex==-1)
             getSimulation()->getActiveEnvir()->alert("stop here");
+    if(logEntryToSendIndex==0){ logEntryToSendIndex=1;}
     LogEntry logEntry = server->log->getFromIndex(logEntryToSendIndex);
-    LogEntry prevLogEntry = server->log->getFromIndex(logEntryToSendIndex - 1);
+
+
+    int prevlogentryindex;
+    int prevlogentryterm;
+    if(logEntryToSendIndex>1){
+        LogEntry  prevLogEntry = server->log->getFromIndex(logEntryToSendIndex - 1);
+        prevlogentryindex = prevLogEntry.index;
+        prevlogentryterm = prevLogEntry.term;
+    }
+    else{
+        prevlogentryindex = 0;
+        prevlogentryterm = 0;
+    }
 
     AppendEntries *request = new AppendEntries("AppendEntries",
-            server->currentTerm, server->getParentModule()->getIndex(), prevLogEntry.index,
-            prevLogEntry.term, { logEntry }, server->commitIndex);
+            server->currentTerm, server->getParentModule()->getIndex(), prevlogentryindex,
+            prevlogentryterm, { logEntry }, server->commitIndex);
 
     server->send(request, "out", senderIndex);
 }
