@@ -31,7 +31,6 @@ simple Client
         double resendCommandTimeout @unit(s) = default(0.5s);
         int numServers = default(5);
 
-        @display("i=block/source");
         @signal[commandResponseTime](type="simtime_t");
         @statistic[commandResponseTime](title="Total response time of client request"; unit=s; record=vector,stats,mean,max; interpolationmode=linear);
 
@@ -110,9 +109,50 @@ module ServerNode
             queue_servers[i].out --> port_out[i];
         }
 
-        // Output for clients, from the queue to the Node output
+        // Output for clients, from the queue to the ServerNode output
         for i=0..sizeof(port_toclients)-1 {
             queue_clients[i].out --> port_toclients[i];
+        }
+}
+
+module ClientNode
+{
+    parameters:
+        @display("i=block/source");
+        
+    gates:
+        input port_in[];
+        output port_out[];
+
+        // To implement in case of new statistics that involve the StatsCollector
+        //output port_toStatsCollector;
+
+    submodules:
+        client: Client {
+            @display("p=180,142");
+        }
+        queue_servers[sizeof(port_out)]: DelayQueue {
+            @display("p=72,213");
+        }
+
+    connections:
+        // To implement in case of new statistics that involve the StatsCollector
+        // Client to StatsCollector 
+        // client.toStatsCollector --> port_toStatsCollector;
+
+        // Client to queues_servers
+        for i=0..sizeof(port_out)-1 {
+            client.out++ --> queue_servers[i].in;
+        }
+
+        // Inputs received from servers to inputs of the client
+        for i=0..sizeof(port_in)-1 {
+            port_in[i] --> client.in++;
+        }
+
+        // Output for servers, from the queue to the ClientNode output
+        for i=0..sizeof(port_out)-1 {
+            queue_servers[i].out --> port_out[i];
         }
 }
 
@@ -150,7 +190,7 @@ network Raft
         server_node[numServers]: ServerNode {
             @display("p=95,37");
         }
-        client[numClients]: Client {
+        client_node[numClients]: ClientNode {
             @display("p=174,76");
         }
         statsCollector: StatsCollector;
@@ -164,7 +204,7 @@ network Raft
         }
 
         for i=0..numClients-1, for j=0..numServers-1 {
-            client[i].out++ --> Channel --> server_node[j].port_fromclients++;
-            client[i].in++ <-- Channel <-- server_node[j].port_toclients++;
+            client_node[i].port_out++ --> Channel --> server_node[j].port_fromclients++;
+            client_node[i].port_in++ <-- Channel <-- server_node[j].port_toclients++;
         }
 }

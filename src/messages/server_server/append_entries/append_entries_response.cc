@@ -64,6 +64,8 @@ void AppendEntriesResponse::buildAndSendNextAppendEntriesRequest(Server *server,
         int senderIndex) const {
     //        int logEntryToSendIndex = server->matchIndex[senderIndex] + 1;
     int logEntryToSendIndex = server->nextIndex[senderIndex];
+    if (logEntryToSendIndex==-1 || logEntryToSendIndex==0)
+            getSimulation()->getActiveEnvir()->alert("stop here");
     LogEntry logEntry = server->log->getFromIndex(logEntryToSendIndex);
     LogEntry prevLogEntry = server->log->getFromIndex(logEntryToSendIndex - 1);
 

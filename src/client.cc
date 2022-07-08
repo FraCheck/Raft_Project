@@ -6,8 +6,8 @@
 #include "utils/unique_id.h"
 
 void Client::initialize() {
-    numberOfServers = getParentModule()->par("numServers");
-    channel_omission_probability = getParentModule()->par("channel_omission_probability");
+    numberOfServers = getParentModule()->getParentModule()->par("numServers");
+    channel_omission_probability = getParentModule()->getParentModule()->par("channel_omission_probability");
     resendCommandPeriod = par("resendCommandTimeout");
     sendCommandPeriod = par("sendCommandTimeout").doubleValue();
 
@@ -34,7 +34,7 @@ void Client::handleMessage(cMessage *msg) {
 
             lastCommandId = UniqueID().id;
             lastCommand = buildRandomString(5);
-            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
                     serverindex);
             
             cancelResendCommandTimeout();
@@ -42,7 +42,7 @@ void Client::handleMessage(cMessage *msg) {
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
         } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
-            send(new AddCommand(lastCommandId, lastCommand, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
                     serverindex);
 
             scheduleResendCommand();           
@@ -53,7 +53,7 @@ void Client::handleMessage(cMessage *msg) {
     
     // OMISSIONS OF THE CHANNEL
     // We simulate channel omissions, randomly deleting messages coming from the network
-    double theshold =  1-channel_omission_probability;
+    double theshold = 1 - channel_omission_probability;
     if (uniform(0, 1) > theshold){
         bubble("CHANNEL OMISSION");
         cancelAndDelete(msg);
@@ -86,7 +86,7 @@ void Client::cancelResendCommandTimeout() {
 
 void Client::emitCommandTimeResponseSignal() {
     emit(commandResponseTimeSignal, simTime() - commandTimestamp);
-    EV << "[Client" << this->getIndex() << "] Emitted command execution response time: " << simTime() - commandTimestamp << endl;
+    EV << "[Client" << getParentModule()->getIndex() << "] Emitted command execution response time: " << simTime() - commandTimestamp << endl;
 }
 
 string Client::buildRandomString(int length) {

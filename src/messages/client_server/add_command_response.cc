@@ -23,7 +23,7 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         // send the command to the leader
         if(leaderId!=-1){
         AddCommand *request = new AddCommand(client->lastCommandId,
-                client->lastCommand, client->getIndex());
+                client->lastCommand, client->getParentModule()->getIndex());
         client->send(request, "out", leaderId);
         }
 
