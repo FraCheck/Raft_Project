@@ -111,7 +111,7 @@ void Server::handleMessage(cMessage *msg) {
             state = FOLLOWER;
             currentLeader= -1;
 
-        bubble("CRASHED");
+        getParentModule()->bubble("CRASHED");
         EV << "[Server" << getParentModule()->getIndex() << " just crashed." << endl;
         crashed = true;
         cancelEvent(crashEvent);
@@ -123,7 +123,7 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     if (msg == recoverEvent) {
-        bubble("RECOVERED");
+        getParentModule()->bubble("RECOVERED");
         rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
@@ -147,7 +147,7 @@ void Server::handleMessage(cMessage *msg) {
         } else
 
         if (msg == electionTimeoutEvent) {
-            ServerFailure *failed = new ServerFailure(true);
+            ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
             send(failed, "toStatsCollector");
             startElection();
             ConsensusMessages *reqVotes = new ConsensusMessages(nbOfServers-1);
@@ -163,7 +163,7 @@ void Server::handleMessage(cMessage *msg) {
     // We simulate channel omissions, randomly deleting messages coming from the network
     double theshold =  1-channel_omission_probability;
     if (uniform(0, 1) > theshold){
-        bubble("CHANNEL OMISSION");
+        getParentModule()->bubble("CHANNEL OMISSION");
         EV << "[Server " << getParentModule()->getIndex() << "] Message not received because of channel omission."<<endl;
         cancelAndDelete(msg);
         return;
@@ -235,11 +235,6 @@ void Server::startElection() {
             getParentModule()->getIndex(), getLastLogIndex(), getLastLogTerm());
     broadcast(requestvote);
     delete requestvote;
-}
-
-void Server::registerLeaderElectionTime() {
-    LeaderElected *elected = new LeaderElected();
-    send(elected, "toStatsCollector");
 }
 
 void Server::sendToStatsCollector(cMessage *msg){

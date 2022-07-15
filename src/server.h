@@ -67,7 +67,6 @@ public:
     void rescheduleElectionTimeout();
     void stopElectionTimeout();
     void broadcast(cMessage *msg);
-    void registerLeaderElectionTime();
 
     int getLastLogTerm();
     int getLastLogIndex();

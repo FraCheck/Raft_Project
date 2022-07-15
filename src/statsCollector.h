@@ -14,6 +14,7 @@ public:
     simtime_t leader_failed, new_leader_elected;
     int nb_messagesToConsensus = 0;
     bool is_election_ongoing;
+    int leader_term;
 
     // SIGNALS
     simsignal_t consensusTimeSignal;

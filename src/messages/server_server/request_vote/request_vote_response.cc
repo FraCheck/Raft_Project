@@ -29,7 +29,7 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
 
     server->state = LEADER;
     server->currentLeader = server->getParentModule()->getIndex();
-    LeaderElected *elected = new LeaderElected();
+    LeaderElected *elected = new LeaderElected(server->currentTerm);
     server->sendToStatsCollector(elected);
 
     // "When a leader first comes to power, it initializes all nextIndex values

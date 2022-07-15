@@ -162,7 +162,7 @@ network Raft
         int numServers = default(5);
         int numClients = default(1);
 
-        double channel_omission_probability = default(0.05);
+        double channel_omission_probability = default(0.01);
         bool networkDelaysPresent = default(true);
 
         // The system should satisfies the following timing requirement:

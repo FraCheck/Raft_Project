@@ -14,7 +14,7 @@ AddCommandResponse::AddCommandResponse(bool success, int leaderId,
 
 void AddCommandResponse::handleOnClient(Client *client) const {
     if (client->lastCommandId != requestId) {
-        client->bubble("Received response for another request");
+        client->getParentModule()->bubble("Received response for another request");
         return;
     }
 

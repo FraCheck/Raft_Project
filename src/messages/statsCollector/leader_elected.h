@@ -6,10 +6,12 @@
 #include "../../statsCollector.h"
 
 class LeaderElected: public HandableMessage {
+    int leader_term;
 
 public:
-    LeaderElected() {
+    LeaderElected(int leader_term) {
         cMessage::setName("LeaderElected");
+        this->leader_term = leader_term;
     }
 
     void handleOnStatsCollector(StatsCollector *statsCollector) const override {
@@ -23,12 +25,15 @@ public:
 
             // Restore messages exchanged count for next election
             statsCollector->nb_messagesToConsensus = 0;
+
+            // Set the term of current leader
+            statsCollector->leader_term = leader_term;
         }
     }
     ;
 
     cMessage* dup() const override {
-        return new LeaderElected();
+        return new LeaderElected(leader_term);
     }
 };
 
