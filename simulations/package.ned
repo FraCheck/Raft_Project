@@ -2,9 +2,6 @@ package raft_project.simulations;
 
 @license(LGPL);
 
-
-
-
 simple Server
 {
     parameters:

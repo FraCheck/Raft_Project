@@ -47,4 +47,5 @@ void RequestVoteResponse::handleOnServer(Server *server) const {
     server->broadcast(heartbeat);
     server->scheduleHeartbeat();
     delete heartbeat;
+    return;
 }

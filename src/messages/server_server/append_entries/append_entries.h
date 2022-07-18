@@ -31,6 +31,8 @@ public:
             RPCRequest(term) {
         if (!entries.empty())
             cMessage::setName(to_string(entries[0].index).c_str());
+        else
+            cMessage::setName("Heartbeat");
         this->leaderId = leaderId;
         this->prevLogIndex = prevLogIndex;
         this->prevLogTerm = prevLogTerm;

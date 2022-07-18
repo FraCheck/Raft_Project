@@ -58,8 +58,8 @@ void Server::initialize() {
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
     log = new LogEntryVector(getParentModule()->getIndex());
-    nextIndex= new int(getServerNodeVectorSize());
-    matchIndex = new int(getServerNodeVectorSize());
+    nextIndex = new int[getServerNodeVectorSize()];
+    matchIndex = new int[getServerNodeVectorSize()];
     nbOfServers = getParentModule()->getParentModule()->par("numServers");
     server_failure_probability = par("server_failure_probability");
     leader_failure_probability = par("leader_failure_Probability");
@@ -91,10 +91,13 @@ void Server::initialize() {
 }
 
 void Server::finish() {
+    delete[] nextIndex;
+    delete[] matchIndex;
     cancelAndDelete(electionTimeoutEvent);
     cancelAndDelete(heartbeatEvent);
     cancelAndDelete(recoverEvent);
     cancelAndDelete(resendAppendEntryEvent);
+    cancelAndDelete(crashEvent);
 }
 
 void Server::handleMessage(cMessage *msg) {
