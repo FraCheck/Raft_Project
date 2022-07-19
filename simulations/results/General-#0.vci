@@ -1,15 +1,15 @@
-file 598500 1657372230                                          
+file 1369333 1658259116                                         
 version 2
-run General-0-20220709-15:09:44-684836
+run General-0-20220719-21:30:50-11356
 attr configname General
-attr datetime 20220709-15:09:44
+attr datetime 20220719-21:30:50
 attr experiment General
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsf ""
 attr measurement ""
 attr network Raft
-attr processid 684836
+attr processid 11356
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -17,9 +17,16 @@ attr runnumber 0
 attr seedset 0
 param Raft.numServers 5
 param Raft.numClients 2
-param Raft.client_node[*].client.sendCommandTimeout 0.9s
-param Raft.server_node[*].server.canFail true
+param Raft.channel_omission_probability 0.01
 param Raft.networkDelaysPresent true
+param Raft.displayLogs false
+param Raft.disableStatsCollector false
+param Raft.server_node[*].server.canFail true
+param Raft.server_node[*].server.server_failure_probability 0.2
+param Raft.server_node[*].server.leader_failure_probability 0.2
+param Raft.client_node[*].client.sendCommandTimeout 0.3s
+param Raft.server_node[*].queue_servers[*].avgServiceTime 0.007s
+param Raft.server_node[*].queue_clients[*].avgServiceTime 0.007s
 
 vector 0 Raft.statsCollector consensusTime:vector ETV
 attr interpolationmode linear
@@ -28,16 +35,24 @@ attr unit s
 vector 1 Raft.statsCollector consensusMessages:vector ETV
 attr interpolationmode linear
 attr title "Number of messages exchanged on the network to reach consensus among servers, vector"
-vector 2 Raft.client_node[0].client commandResponseTime:vector ETV
+vector 2 Raft.client_node[1].client commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-vector 3 Raft.client_node[1].client commandResponseTime:vector ETV
+vector 3 Raft.client_node[0].client commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-0	1295 189820 54 1569137 0.249711778807 7345.454672912593 4423 0.017143126933 5.269973247194 2672.2935627119 4714.1684341123
-1	191115 134291 54 1569137 0.249711778807 7345.454672912593 4423 3 76 45905 966747
-2	325406 135977 237 1569991 0.598669974452 7348.554482886977 3169 0.035560178167 12.769060989741 5150.9757333238 17314.919690901
-3	461383 137115 340 1569953 0.893435417351 7348.45828385633 3196 0.036520793804 10.582619768258 5164.1679554339 17073.805593792
+vector 4 Raft.statsCollector timeToRecoverLog:vector ETV
+attr interpolationmode linear
+attr title "Time required for a server to recover its log to the most up to date version possible, vector"
+attr unit s
+0	1881 105072 54 2499565 0.245040872249 6401.168079733642 2435 0.016470016424 2.942200924363 201.76328358405 72.084471127684
+1	106953 73981 54 2499565 0.245040872249 6401.168079733642 2435 3 55 13881 116395
+2	180934 522286 262 2499918 0.688602544543 6402.340656308239 12106 0.03254738539 4.19513722472 2858.6303559477 2448.4561511418
+3	703220 526550 318 2499908 0.771224845408 6402.313192429764 12198 0.032000758355 4.231445042583 2936.7792684179 2573.8364875407
+4	1229770 139256 1441 2499058 3.087973621848 6399.229425981686 3228 0.000249016764 8.10807211402 917.04079965323 792.89934879331
+2	1369026 131 2500110 2500632 6402.926361061997 6403.484759148821 3 0.064627174127 0.576469483324 0.712040741521 0.34152679990401
+3	1369157 88 2500005 2500365 6402.627802281015 6403.222565106019 2 0.070964742473 0.338663622135 0.409628364608 0.11972904363186
+4	1369245 86 2500230 2500536 6403.098476539174 6403.359218687128 2 0.195863407843 0.5804465171 0.776309924943 0.37528063374539
 

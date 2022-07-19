@@ -10,7 +10,7 @@
 #include "messages/statsCollector/leader_elected.h"
 #include "messages/statsCollector/server_failure.h"
 #include "messages/statsCollector/consensus_messages.h"
-
+#include "messages/statsCollector/server_recovering.h"
 #include "utils/printer.h"
 
 void Server::refreshDisplay() const {
@@ -123,7 +123,7 @@ void Server::handleMessage(cMessage *msg) {
             currentLeader= -1;
 
         getParentModule()->bubble("CRASHED");
-        EV << "[Server" << getParentModule()->getIndex() << " just crashed." << endl;
+        EV << "[Server" << getParentModule()->getIndex() << "] just crashed." << endl;
         crashed = true;
         cancelEvent(crashEvent);
         cancelEvent(heartbeatEvent);
@@ -138,7 +138,9 @@ void Server::handleMessage(cMessage *msg) {
         rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
-         return;
+        ServerRecovering *server_recovered = new ServerRecovering(getParentModule()->getIndex(),getLastLogIndex());
+        sendToStatsCollector(server_recovered);
+        return;
     }
 
     if (crashed) {
@@ -159,10 +161,10 @@ void Server::handleMessage(cMessage *msg) {
 
         if (msg == electionTimeoutEvent) {
             ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
-            send(failed, "toStatsCollector");
+            sendToStatsCollector(failed);
             startElection();
             ConsensusMessages *reqVotes = new ConsensusMessages(nbOfServers-1);
-            send(reqVotes, "toStatsCollector");
+            sendToStatsCollector(reqVotes);
         }
         return;
     }
@@ -249,7 +251,8 @@ void Server::startElection() {
 }
 
 void Server::sendToStatsCollector(cMessage *msg){
-    send(msg, "toStatsCollector");
+    if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+        send(msg, "toStatsCollector");
 }
 
 void Server::scheduleHeartbeat() {
