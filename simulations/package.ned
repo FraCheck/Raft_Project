@@ -188,7 +188,7 @@ network Raft
             @display("p=95,37");
         }
         client_node[numClients]: ClientNode {
-            @display("p=174,76");
+           // @display("p=174,76");
         }
         statsCollector: StatsCollector;
     connections:
