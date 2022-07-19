@@ -33,16 +33,24 @@ void Server::refreshDisplay() const {
                 << printElements(matchIndex, getParentModule()->getVectorSize());
 
     dispStr.parse(out.str().c_str());
+    if (getParentModule()->getParentModule()->par("displayLogs")){
+        ostringstream labelText;
+        labelText << padOut(to_string(getParentModule()->getIndex()), 3)
+                << padOut(to_string(currentTerm), 6)
+                << padOut(to_string(votedFor), 6)
+                << padOut(to_string(commitIndex), 8)
+                << padOut(to_string(lastApplied), 7) << "[" << log->toString()
+                << "]";
+        label->setText(labelText.str().c_str());
+    }else{
+        ostringstream labelText;
+        labelText << padOut(to_string(getParentModule()->getIndex()), 3)
+                << padOut(to_string(currentTerm), 6)
+                << padOut(to_string(votedFor), 6)
+                << padOut(to_string(commitIndex), 8);
+       label->setText(labelText.str().c_str());
+    }
 
-    ostringstream labelText;
-    labelText << padOut(to_string(getParentModule()->getIndex()), 3)
-            << padOut(to_string(currentTerm), 6)
-            << padOut(to_string(votedFor), 6)
-            << padOut(to_string(commitIndex), 8)
-            << padOut(to_string(lastApplied), 7) << "[" << log->toString()
-            << "]";
-
-    label->setText(labelText.str().c_str());
     label->setPosition(cFigure::Point(20, 6 + getParentModule()->getIndex() * 6));
     label->setFont(cFigure::Font("Courier New"));
     label->setAnchor(cFigure::ANCHOR_NW);
@@ -166,7 +174,7 @@ void Server::handleMessage(cMessage *msg) {
     // We simulate channel omissions, randomly deleting messages coming from the network
     double theshold =  1-channel_omission_probability;
     if (uniform(0, 1) > theshold){
-        getParentModule()->bubble("CHANNEL OMISSION");
+        getParentModule()->bubble("Channel Omission");
         EV << "[Server " << getParentModule()->getIndex() << "] Message not received because of channel omission."<<endl;
         cancelAndDelete(msg);
         return;
@@ -268,12 +276,12 @@ void Server::stopElectionTimeout() {
 }
 
 void Server::scheduleCrash() {
-    simtime_t crashTimeout = par("crashTimeout");
+    simtime_t crashTimeout = exponential(par("crashTimeoutAvg").doubleValue());
     scheduleAt(simTime() + crashTimeout, crashEvent);
 }
 
 void Server::scheduleRecover() {
-    simtime_t recoverTimeout = par("recoverTimeout");
+    simtime_t recoverTimeout = exponential(par("recoverTimeoutAvg").doubleValue());
     scheduleAt(simTime() + recoverTimeout, recoverEvent);
 }
 

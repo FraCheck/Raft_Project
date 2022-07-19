@@ -10,8 +10,8 @@ simple Server
         double server_failure_probability = default(0.2);
         double leader_failure_Probability = default(0.2);
         bool canFail = default(false);
-        double crashTimeout @unit(s) = default(uniform(1s, 3s));
-        double recoverTimeout @unit(s) = default(2s);
+        volatile double crashTimeoutAvg @unit(s) = default(uniform(1s, 3s));
+        double recoverTimeoutAvg @unit(s) = default(2s);
 		
     gates:
         input in[];
@@ -161,7 +161,7 @@ network Raft
 
         double channel_omission_probability = default(0.01);
         bool networkDelaysPresent = default(true);
-
+        bool displayLogs = default(true);
         // The system should satisfies the following timing requirement:
 		// broadcastTime << electionTimeout << MTBF
 

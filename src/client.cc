@@ -55,7 +55,7 @@ void Client::handleMessage(cMessage *msg) {
     // We simulate channel omissions, randomly deleting messages coming from the network
     double theshold = 1 - channel_omission_probability;
     if (uniform(0, 1) > theshold){
-        getParentModule()->bubble("CHANNEL OMISSION");
+        getParentModule()->bubble("Channel Omission");
         cancelAndDelete(msg);
         return;
     }
