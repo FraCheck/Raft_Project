@@ -21,6 +21,7 @@ void StatsCollector::initialize() {
 }
 
 void StatsCollector::finish() {
+    recoveryServersStatus.clear();
 }
 
 void StatsCollector::handleMessage(cMessage *msg) {

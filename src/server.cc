@@ -101,6 +101,7 @@ void Server::initialize() {
 void Server::finish() {
     delete[] nextIndex;
     delete[] matchIndex;
+    log->clear();
     cancelAndDelete(electionTimeoutEvent);
     cancelAndDelete(heartbeatEvent);
     cancelAndDelete(recoverEvent);
