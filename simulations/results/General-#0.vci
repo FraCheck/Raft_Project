@@ -1,15 +1,15 @@
-file 13752213 1658247578                                        
+file 316646 1658261368                                          
 version 2
-run General-0-20220719-18:18:08-464
+run General-0-20220719-22:09:20-8860
 attr configname General
-attr datetime 20220719-18:18:08
+attr datetime 20220719-22:09:20
 attr experiment General
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsf ""
 attr measurement ""
 attr network Raft
-attr processid 464
+attr processid 8860
 attr repetition 0
 attr replication #0
 attr resultdir results
@@ -17,15 +17,16 @@ attr runnumber 0
 attr seedset 0
 param Raft.numServers 5
 param Raft.numClients 2
-param Raft.channel_omission_probability 0.02
+param Raft.channel_omission_probability 0.01
 param Raft.networkDelaysPresent true
 param Raft.displayLogs false
+param Raft.disableStatsCollector false
 param Raft.server_node[*].server.canFail true
-param Raft.server_node[*].server.server_failure_probability 0.1
-param Raft.server_node[*].server.leader_failure_probability 0.1
-param Raft.client_node[*].client.sendCommandTimeout 0.9s
-param Raft.server_node[*].queue_servers[*].avgServiceTime 0.1s
-param Raft.server_node[*].queue_clients[*].avgServiceTime 0.1s
+param Raft.server_node[*].server.server_failure_probability 0.2
+param Raft.server_node[*].server.leader_failure_probability 0.2
+param Raft.client_node[*].client.sendCommandTimeout 0.3s
+param Raft.server_node[*].queue_servers[*].avgServiceTime 0.007s
+param Raft.server_node[*].queue_clients[*].avgServiceTime 0.007s
 
 vector 0 Raft.statsCollector consensusTime:vector ETV
 attr interpolationmode linear
@@ -34,24 +35,20 @@ attr unit s
 vector 1 Raft.statsCollector consensusMessages:vector ETV
 attr interpolationmode linear
 attr title "Number of messages exchanged on the network to reach consensus among servers, vector"
-vector 2 Raft.client_node[0].client commandResponseTime:vector ETV
+vector 2 Raft.client_node[1].client commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-vector 3 Raft.client_node[1].client commandResponseTime:vector ETV
+vector 3 Raft.client_node[0].client commandResponseTime:vector ETV
 attr interpolationmode linear
 attr title "Total response time of client request, vector"
 attr unit s
-0	1623 1471661 153 15342868 0.710916116183 85237.974186929095 32768 0.000426986346 25.806598865011 75194.829466613 395993.6016154
-1	1473284 1074666 153 15342868 0.710916116183 85237.974186929095 32768 1 282 936758 51972556
-0	2547950 1527711 15342995 30923835 85238.653999181329 171556.617320013089 32768 0.00044310437 35.823145584495 76257.446632112 412472.91389062
-1	4075661 1131060 15342995 30923835 85238.653999181329 171556.617320013089 32768 1 291 947134 53139070
-0	5206721 1533485 30924877 46464757 171560.732189773591 257944.652355233707 32768 0.001088751596 31.219865741876 76386.534180022 406641.72962299
-1	6740206 1136629 30924877 46464757 171560.732189773591 257944.652355233707 32768 1 343 951534 53010150
-0	7876835 1533540 46464971 61960999 257945.358074473377 343568.084066497638 32768 3.6084831e-05 27.362694413326 75690.998765209 406771.34188246
-1	9410375 1136629 46464971 61960999 257945.358074473377 343568.084066497638 32768 1 310 945593 53278609
-0	10547004 1383378 61961059 76042976 343568.348991728363 421557.054698200762 29559 0.000222478378 35.111672037642 68876.363694467 368543.81749221
-1	11930382 1025465 61961059 76042976 343568.348991728363 421557.054698200762 29559 1 328 856925 48134445
-2	12955847 401737 393 76017117 1.595622644944 421418.978190400317 8518 0.102644556372 1875.8123278807 471776.03580089 57868676.241765
-3	13357584 394627 1545 76039019 5.825938623186 421539.465084838202 8368 0.158795370467 957.66997317556 463349.42630505 53456831.186163
-
+vector 4 Raft.statsCollector timeToRecoverLog:vector ETV
+attr interpolationmode linear
+attr title "Time required for a server to recover its log to the most up to date version possible, vector"
+attr unit s
+0	1879 24669 54 589683 0.245040872249 1509.739371295127 590 0.016676223864 2.942200924363 47.529934558803 22.489506065925
+1	26548 17135 54 589683 0.245040872249 1509.739371295127 590 3 55 3296 28056
+2	43683 119548 262 590586 0.688602544543 1511.809405398617 2858 0.03338117351 4.19513722472 662.97913765917 583.27758098042
+3	163231 120640 318 590433 0.771224845408 1511.394215601046 2882 0.032000758355 4.231445042583 703.45192980206 652.89759480011
+4	283871 32773 1441 589753 3.087973621848 1509.823972599253 783 0.001202123064 8.037685413405 236.76658095804 302.06997076938

@@ -104,6 +104,10 @@ public:
         log.erase(first, last);
     }
 
+    void clear(){
+        log.clear();
+    }
+
     string toString() const {
         ostringstream out;
 

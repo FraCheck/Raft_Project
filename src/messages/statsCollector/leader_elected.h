@@ -7,11 +7,12 @@
 
 class LeaderElected: public HandableMessage {
     int leader_term;
-
+    int leader_index;
 public:
-    LeaderElected(int leader_term) {
+    LeaderElected(int leader_term,int leader_index) {
         cMessage::setName("LeaderElected");
         this->leader_term = leader_term;
+        this->leader_index = leader_index;
     }
 
     void handleOnStatsCollector(StatsCollector *statsCollector) const override {
@@ -28,12 +29,15 @@ public:
 
             // Set the term of current leader
             statsCollector->leader_term = leader_term;
+
+            // Set the index of the current leader
+            statsCollector->currentLeader = leader_index;
         }
     }
     ;
 
     cMessage* dup() const override {
-        return new LeaderElected(leader_term);
+        return new LeaderElected(this->leader_term, this->leader_index);
     }
 };
 

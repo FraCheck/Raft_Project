@@ -18,8 +18,10 @@ public:
     void handleOnStatsCollector(StatsCollector *statsCollector) const override {
         if (isLeader){
             // the request of the server will not produce a new leader for the term
-            if (server_term <= statsCollector->leader_term)
+            if (server_term <= statsCollector->leader_term){
+                EV << "There will be no election because a leader already exists in a more recent term" << endl;
                 return;
+            }
             if (statsCollector->is_election_ongoing == false) {
                 statsCollector->is_election_ongoing = true;
                 statsCollector->leader_failed = simTime();

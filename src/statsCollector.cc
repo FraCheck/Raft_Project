@@ -1,18 +1,27 @@
-#include <ctime>
-#include <random>
 #include "statsCollector.h"
 #include "messages/handable_message.h"
+
 
 void StatsCollector::initialize() {
     numberOfServers = getParentModule()->par("numServers");
     // Signals registering
     consensusTimeSignal = registerSignal("consensusTime");
+    timeToRecoverLogSignal = registerSignal("timeToRecoverLog");
     consensusMessagesSignal = registerSignal("consensusMessages");
+
     leader_failed = simTime();
-    is_election_ongoing = true;
+    is_election_ongoing = false;
+    leader_term = 0;
+
+    for (int i=0; i<numberOfServers; i++){
+        RecoveringServerStatus *recoveringServerStatus = new RecoveringServerStatus(i, false, 0, 0);
+        recoveryServersStatus.push_back(recoveringServerStatus);
+    }
+
 }
 
 void StatsCollector::finish() {
+    recoveryServersStatus.clear();
 }
 
 void StatsCollector::handleMessage(cMessage *msg) {
@@ -33,4 +42,9 @@ void StatsCollector::emitConsensusTime(){
 void StatsCollector::emitConsensunsMessges(){
     emit(consensusMessagesSignal, nb_messagesToConsensus);
      EV << "[StatsCollector] Emitted messages number required to reach consensus: " << nb_messagesToConsensus << endl;
+}
+
+void StatsCollector::emitTimeToRecoverLog(simtime_t time_to_update_log, int server_index){
+    emit(timeToRecoverLogSignal, time_to_update_log);
+    EV << "[StatsCollector] Emitted time required to get up to date for Server[" << server_index <<"]: " << time_to_update_log << endl;
 }

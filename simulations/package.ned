@@ -10,10 +10,10 @@ simple Server
         double server_failure_probability = default(0.2);
         double leader_failure_Probability = default(0.2);
         bool canFail = default(false);
-        volatile double crashTimeoutAvg @unit(s) = default(uniform(1s, 3s));
-        double recoverTimeoutAvg @unit(s) = default(2s);
+        volatile double crashTimeoutAvg @unit(s) = default(3s);
+        double recoverTimeoutAvg @unit(s) = default(0.5s);
         bool test= default(false);
-		
+
     gates:
         input in[];
         output out[];
@@ -44,16 +44,19 @@ simple StatsCollector
         @display("p=20,60");
         @signal[consensusTime](type="simtime_t");
         @signal[consensusMessages](type="long");
+        @signal[timeToRecoverLog](type="simtime_t");
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
         @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers"; record=vector,max,mean; interpolationmode=linear);
-    gates:
+        @statistic[timeToRecoverLog](title="Time required for a server to recover its log to the most up to date version possible"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
+
+        gates:
         input in[];
 }
 
 simple DelayQueue
 {
     parameters:
-        volatile double avgServiceTime @unit(s) = default(0.01s);
+        volatile double avgServiceTime @unit(s) = default(0.001s);
         @display("i=block/queue");
     gates:
         input in;
@@ -64,7 +67,7 @@ simple Mock{
     input in;
     input fromserver[];
     input fromstats;
-    output out;    
+    output out;
 }
 
 module ServerNode
@@ -124,7 +127,7 @@ module ClientNode
 {
     parameters:
         @display("i=block/source");
-        
+
     gates:
         input port_in[];
         output port_out[];
@@ -142,7 +145,7 @@ module ClientNode
 
     connections:
         // To implement in case of new statistics that involve the StatsCollector
-        // Client to StatsCollector 
+        // Client to StatsCollector
         // client.toStatsCollector --> port_toStatsCollector;
 
         // Client to queues_servers
@@ -170,13 +173,15 @@ network Raft
         double channel_omission_probability = default(0.01);
         bool networkDelaysPresent = default(true);
         bool displayLogs = default(true);
+        bool disableStatsCollector = default(false);
+
         // The system should satisfies the following timing requirement:
 		// broadcastTime << electionTimeout << MTBF
 
-        //The broadcast time should be an order of magnitude less than the 
+        //The broadcast time should be an order of magnitude less than the
         // election timeout so that leaders can reliably send the heartbeat messages
         //required to keep followers from starting elections
-        double broadcastTime @unit(ms) = default(uniform(0.010s, 0.020s));
+        double broadcastTime @unit(s) = default(uniform(0.010s, 0.020s));
         double MTBF @unit(d) = default(uniform(100d, 200d));
 
 
@@ -215,12 +220,12 @@ network Raft
 }
 network Test
 {
-    
+
     submodules:
         server: Server {
             parameters:
                 @display("i=,cyan"); // do not change the icon (first arg of i=) just colorize it
-                
+
         }
         mock: Mock {
             parameters:
@@ -231,5 +236,5 @@ network Test
         server.toclients++ --> {} -->  mock.fromserver++;
         server.toStatsCollector --> {delay = 100ms;} -->  mock.fromstats;
         server.in++ <-- {delay = 100ms;} <-- mock.out;
-        
+
 }

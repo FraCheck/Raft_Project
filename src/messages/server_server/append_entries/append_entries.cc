@@ -2,6 +2,7 @@
 #include <list>
 #include "../../server_server/append_entries/append_entries.h"
 #include "../../server_server/append_entries/append_entries_response.h"
+#include "../../statsCollector/server_log_update.h"
 #include "../../../utils/log_entry.h"
 
 void AppendEntries::handleOnServer(Server *server) const {
@@ -62,8 +63,12 @@ void AppendEntries::handleOnServer(Server *server) const {
                 break;
             }
 
-        if (!alreadyAppended)
+        if (!alreadyAppended){
             server->log->append(entries[i]);
+            ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), server->getLastLogIndex());
+            server->sendToStatsCollector(serverLogUpdate);
+        }
+        
     }
 
     // "If leaderCommit > commitIndex,
