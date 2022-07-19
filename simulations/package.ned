@@ -12,6 +12,7 @@ simple Server
         bool canFail = default(false);
         volatile double crashTimeoutAvg @unit(s) = default(uniform(1s, 3s));
         double recoverTimeoutAvg @unit(s) = default(2s);
+        bool test= default(false);
 		
     gates:
         input in[];
@@ -57,6 +58,13 @@ simple DelayQueue
     gates:
         input in;
         output out;
+}
+simple Mock{
+    gates:
+    input in;
+    input fromserver[];
+    input fromstats;
+    output out;    
 }
 
 module ServerNode
@@ -204,4 +212,24 @@ network Raft
             client_node[i].port_out++ --> Channel --> server_node[j].port_fromclients++;
             client_node[i].port_in++ <-- Channel <-- server_node[j].port_toclients++;
         }
+}
+network Test
+{
+    
+    submodules:
+        server: Server {
+            parameters:
+                @display("i=,cyan"); // do not change the icon (first arg of i=) just colorize it
+                
+        }
+        mock: Mock {
+            parameters:
+                @display("i=,gold"); // here too
+        }
+    connections:
+        server.out++  --> {} -->  mock.in;
+        server.toclients++ --> {} -->  mock.fromserver++;
+        server.toStatsCollector --> {delay = 100ms;} -->  mock.fromstats;
+        server.in++ <-- {delay = 100ms;} <-- mock.out;
+        
 }

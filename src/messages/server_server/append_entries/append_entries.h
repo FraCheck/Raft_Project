@@ -8,7 +8,7 @@ using namespace omnetpp;
 using namespace std;
 
 class AppendEntries: public HandableMessage, public RPCRequest {
-private:
+public:
     // Used by followers to redirect clients
     int leaderId;
 

@@ -59,6 +59,7 @@ public:
     double server_failure_probability;
     double leader_failure_probability;
     double channel_omission_probability;
+    bool test;
     
     void startElection();
     void sendToStatsCollector(cMessage *msg);
@@ -67,7 +68,7 @@ public:
     void rescheduleElectionTimeout();
     void stopElectionTimeout();
     void broadcast(cMessage *msg);
-
+    void initializefortest();
     int getLastLogTerm();
     int getLastLogIndex();
     int getServerNodeVectorSize();

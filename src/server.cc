@@ -14,6 +14,7 @@
 #include "utils/printer.h"
 
 void Server::refreshDisplay() const {
+    if(test)return;
     ostringstream out;
     cDisplayString &dispStr = getParentModule()->getDisplayString();
 
@@ -62,6 +63,11 @@ void Server::refreshDisplay() const {
 }
 
 void Server::initialize() {
+    test= par("test");
+    if(test){
+        initializefortest();
+        return;
+    };
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
     resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
@@ -101,11 +107,13 @@ void Server::initialize() {
 void Server::finish() {
     delete[] nextIndex;
     delete[] matchIndex;
+    if(!test){
     cancelAndDelete(electionTimeoutEvent);
     cancelAndDelete(heartbeatEvent);
     cancelAndDelete(recoverEvent);
     cancelAndDelete(resendAppendEntryEvent);
     cancelAndDelete(crashEvent);
+    }
 }
 
 void Server::handleMessage(cMessage *msg) {
@@ -266,7 +274,6 @@ void Server::cancelHeartbeat() {
 
 void Server::rescheduleElectionTimeout() {
     cancelEvent(electionTimeoutEvent);
-
     simtime_t electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
 }
@@ -300,10 +307,20 @@ int Server::getLastLogTerm() {
 int Server::getLastLogIndex() {
     if (log->size() == 0)
         return 0;
-
-    return log->getLast().index;
+     return log->getLast().index;
 }
 
 int Server::getServerNodeVectorSize(){
     return getParentModule()->getVectorSize();
 }
+void Server:: initializefortest(){
+       log = new LogEntryVector(getParentModule()->getIndex());
+       nextIndex = new int[1];
+       matchIndex = new int[1];
+       nextIndex[0] = 1;
+       matchIndex[0] = 0;
+       currentTerm=1;
+       state= LEADER;
+       nbOfServers = 2;
+}
+
