@@ -60,6 +60,7 @@ public:
     double leader_failure_probability;
     double channel_omission_probability;
     bool test;
+    string test_type;
     
     void startElection();
     void sendToStatsCollector(cMessage *msg);

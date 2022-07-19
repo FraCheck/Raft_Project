@@ -13,6 +13,7 @@ simple Server
         volatile double crashTimeoutAvg @unit(s) = default(3s);
         double recoverTimeoutAvg @unit(s) = default(0.5s);
         bool test= default(false);
+        string test_type;
 
     gates:
         input in[];
@@ -63,6 +64,8 @@ simple DelayQueue
         output out;
 }
 simple Mock{
+    parameters:
+        string test_type;
     gates:
     input in;
     input fromserver[];

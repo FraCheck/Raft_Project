@@ -65,6 +65,7 @@ void Server::refreshDisplay() const {
 void Server::initialize() {
     test= par("test");
     if(test){
+        test_type=par("test_type").stringValue();
         initializefortest();
         return;
     };
@@ -319,6 +320,7 @@ int Server::getServerNodeVectorSize(){
     return getParentModule()->getVectorSize();
 }
 void Server:: initializefortest(){
+    if(test_type=="add_command"){
        log = new LogEntryVector(getParentModule()->getIndex());
        nextIndex = new int[1];
        matchIndex = new int[1];
@@ -327,4 +329,21 @@ void Server:: initializefortest(){
        currentTerm=1;
        state= LEADER;
        nbOfServers = 2;
+    }
+    else if(test_type=="append_entries_response_false"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+        LogEntry entry1 = new LogEntry(1,"hi",1,1,1);
+        log->append(entry1);
+        LogEntry entry2 = new LogEntry(2,"hello",2,1,2);
+                log->append(entry2);
+                LogEntry entry3 = new LogEntry(1,"hellow",3,1,3);
+                                log->append(entry3);
+               nextIndex = new int[1];
+               matchIndex = new int[1];
+               nextIndex[0] = 3;
+               matchIndex[0] = 0;
+               currentTerm=2;
+               state= LEADER;
+               nbOfServers = 2;
+    }
 }

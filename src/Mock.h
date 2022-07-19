@@ -11,6 +11,7 @@ using namespace std;
 
 class Mock: public cSimpleModule {
 public:
+    string test_type;
 protected:
     virtual void initialize() override;
     virtual void finish() override;
