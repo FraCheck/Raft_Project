@@ -22,9 +22,9 @@ void AddCommandResponse::handleOnClient(Client *client) const {
         // The message has been sent to the wrong server:
         // send the command to the leader
         if(leaderId!=-1){
-        AddCommand *request = new AddCommand(client->lastCommandId,
-                client->lastCommand, client->getParentModule()->getIndex());
-        client->send(request, "out", leaderId);
+            AddCommand *request = new AddCommand(client->lastCommandId,
+                    client->lastCommand, client->getParentModule()->getIndex());
+            client->send(request, "out", leaderId);
         }
 
         // Set a timeout to retry the request if the server is not responding

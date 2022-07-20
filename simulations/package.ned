@@ -45,11 +45,11 @@ simple StatsCollector
         @signal[timeToRecoverLog](type="simtime_t");
         @signal[commitMessages](type="long");
         @signal[commandResponseTime](type="simtime_t");
-        @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
-        @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers"; record=vector,max,mean; interpolationmode=linear);
+        @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless"; unit=s; record=vector,mean,max,min,; interpolationmode=linear);
+        @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers"; record=vector,max,mean; interpolationmode=sample-hold);
         @statistic[timeToRecoverLog](title="Time required for a server to recover its log to the most up to date version possible"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
-        @statistic[commitMessages](title="Number of messages exchanged on the network to commit a command in the log"; record=vector,max,mean; interpolationmode=linear);
-        @statistic[commandResponseTime](title="Total response time of clients requests"; unit=s; record=vector,stats,mean,max; interpolationmode=linear);
+        @statistic[commitMessages](title="Number of messages exchanged on the network to commit a command in the log"; record=vector,max,mean,min; interpolationmode=sample-hold);
+        @statistic[commandResponseTime](title="Total response time of clients requests"; unit=s; record=vector,stats,mean,max,min; interpolationmode=none);
         
     gates:
         input in[];

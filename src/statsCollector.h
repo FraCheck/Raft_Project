@@ -26,6 +26,7 @@ public:
     simsignal_t consensusMessagesSignal;
     simsignal_t timeToRecoverLogSignal;
     simsignal_t commitMessagesSignal;
+    simsignal_t commandResponseTimeSignal;
 
     void emitConsensusTime();
     void emitTimeToRecoverLog(simtime_t time_to_update_log, int server_index);
@@ -36,7 +37,7 @@ public:
     void committedEntry(int command_id);
     void consensusMessagesIncrement(int nb_messages = 1);
     string getMonitoredCommands();
-    
+
 protected:
     virtual void initialize() override;
     virtual void handleMessage(cMessage *msg) override;

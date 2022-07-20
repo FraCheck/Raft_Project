@@ -10,6 +10,7 @@ void StatsCollector::initialize() {
     timeToRecoverLogSignal = registerSignal("timeToRecoverLog");
     consensusMessagesSignal = registerSignal("consensusMessages");
     commitMessagesSignal = registerSignal("commitMessages");
+    commandResponseTimeSignal = registerSignal("commandResponseTime");
 
     leader_failed = simTime();
     is_election_ongoing = false;
@@ -70,10 +71,11 @@ void StatsCollector::committedEntry(int command_id){
             if(clientCommandsStatus.size() == 0)
                 exchanged_messages = 0;
                 
-            break;
+            return;
         }
-        EV << "[StatsCollector] Received a log commit for an AddCommand never seen" << endl;
+        
     }
+    EV << "[StatsCollector] Received a log commit for an AddCommand never seen" << endl;
 }
 
 void StatsCollector::consensusMessagesIncrement(int nb_messages){
@@ -109,7 +111,7 @@ void StatsCollector::emitCommittedMessages(int command_id, int messages_exchange
 }
 
 void StatsCollector::emitCommandTimeResponse(simtime_t time, int client_id){
-
+    emit(commandResponseTimeSignal, time);
     EV << "[StatsCollector] Emitted command execution response time for Client[" << client_id << "]: " << time << endl;
 }
 

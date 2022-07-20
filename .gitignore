@@ -8,3 +8,4 @@ src/Raft_Project_dbg
 simulations/results
 .settings/language.settings.xml
 /.vscode
+/.computed/
