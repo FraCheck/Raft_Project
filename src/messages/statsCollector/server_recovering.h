@@ -24,10 +24,14 @@ public:
             EV << "[StatsCollector] : Server[" << serverIndex << "] does not need any update."<< endl;
             return;
         }
-        statsCollector->recoveryServersStatus[serverIndex]->isRecovering = true;
-        statsCollector->recoveryServersStatus[serverIndex]->recovery_start_timestamp = simTime();
-        statsCollector->recoveryServersStatus[serverIndex]->server_log_index = server_log_index;
-        EV << "[StatsCollector] : Started counting recovery time for Server[" << serverIndex << "]."<< endl;
+        if (statsCollector->recoveryServersStatus[serverIndex]->isRecovering == false){
+            statsCollector->recoveryServersStatus[serverIndex]->isRecovering = true;
+            statsCollector->recoveryServersStatus[serverIndex]->recovery_start_timestamp = simTime();
+            statsCollector->recoveryServersStatus[serverIndex]->server_log_index = server_log_index;
+            EV << "[StatsCollector] : Started counting recovery time for Server[" << serverIndex << "]."<< endl;
+        }else{
+            EV << "[StatsCollector] : Server[" << serverIndex << "] is still recovering from last crash." << endl;
+        }
     }
     ;
 
