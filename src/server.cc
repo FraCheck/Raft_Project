@@ -262,8 +262,10 @@ void Server::startElection() {
 }
 
 void Server::sendToStatsCollector(cMessage *msg){
+    if(!test){
     if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
         send(msg, "toStatsCollector");
+    }
 }
 
 void Server::scheduleHeartbeat() {
@@ -279,13 +281,17 @@ void Server::cancelHeartbeat() {
 }
 
 void Server::rescheduleElectionTimeout() {
+    if(!test){
     cancelEvent(electionTimeoutEvent);
     simtime_t electionTimeout = par("electionTimeout");
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    }
 }
 
 void Server::stopElectionTimeout() {
+    if(!test){
     cancelEvent(electionTimeoutEvent);
+    }
 }
 
 void Server::scheduleCrash() {
@@ -345,5 +351,41 @@ void Server:: initializefortest(){
                currentTerm=2;
                state= LEADER;
                nbOfServers = 2;
+    }
+    else if(test_type=="request_vote_to_candidate"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+        electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+              nextIndex = new int[1];
+              matchIndex = new int[1];
+              nextIndex[0] = 1;
+              matchIndex[0] = 0;
+              currentTerm=1;
+              votedFor=1;
+              state= CANDIDATE;
+              nbOfServers = 2;
+    }
+    else if(test_type=="request_vote_to_candidate_stale_term"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+               electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+                     nextIndex = new int[1];
+                     matchIndex = new int[1];
+                     nextIndex[0] = 1;
+                     matchIndex[0] = 0;
+                     currentTerm=1;
+                     votedFor=1;
+                     state= CANDIDATE;
+                     nbOfServers = 2;
+    }
+    else if(test_type=="append_entries_with_more_entry_in_log"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+                       electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+                             nextIndex = new int[1];
+                             matchIndex = new int[1];
+                             nextIndex[0] = 0;
+                             matchIndex[0] = 0;
+                             currentTerm=2;
+                             votedFor=-1;
+                             state= FOLLOWER;
+                             nbOfServers = 2;
     }
 }

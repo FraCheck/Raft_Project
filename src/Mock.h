@@ -14,7 +14,7 @@ using namespace std;
 class Mock: public cSimpleModule {
 public:
     string test_type;
-    vector<string> tests  ={"add_command","append_entries_response_false"};
+    vector<string> tests  ={"add_command","append_entries_response_false","request_vote_to_candidate","request_vote_to_candidate_stale_term","append_entries_with_more_entry_in_log"};
     vector<HandableMessage *> messages  ={};
     int testcount=0;
 protected:
