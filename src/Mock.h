@@ -5,6 +5,8 @@
 
 #include <omnetpp.h>
 #include <string>
+#include <vector>
+#include "messages/handable_message.h"
 using namespace omnetpp;
 using namespace std;
 
@@ -12,6 +14,9 @@ using namespace std;
 class Mock: public cSimpleModule {
 public:
     string test_type;
+    vector<string> tests  ={"add_command","append_entries_response_false"};
+    vector<HandableMessage *> messages  ={};
+    int testcount=0;
 protected:
     virtual void initialize() override;
     virtual void finish() override;
