@@ -66,9 +66,21 @@ void StatsCollector::committedEntry(int command_id){
             EV << "[StatsCollector] Removed Command[" << command_id << "] from the list." << endl;
             string list = getMonitoredCommands();
             EV << "New commands list being monitored: " << list << endl;
+
+            if(clientCommandsStatus.size() == 0)
+                exchanged_messages = 0;
+                
             break;
         }
         EV << "[StatsCollector] Received a log commit for an AddCommand never seen" << endl;
+    }
+}
+
+void StatsCollector::consensusMessagesIncrement(int nb_messages){
+    if (this->is_election_ongoing){
+        this->nb_messagesToConsensus+=nb_messages;
+        EV << "[StatsCollector] Incremented the count of messages exchanged during election by " <<
+            nb_messages << "." << endl;
     }
 }
 
@@ -94,6 +106,11 @@ void StatsCollector::emitCommittedMessages(int command_id, int messages_exchange
     EV << "[StatsCollector] Emitted messages number required to commit a command: " << messages_exchanged_to_commit <<
         " messages were required to commit Command[" << command_id << "] in " << simTime() - command_issued_messages_count_at_timestamp 
             << endl;
+}
+
+void StatsCollector::emitCommandTimeResponse(simtime_t time, int client_id){
+
+    EV << "[StatsCollector] Emitted command execution response time for Client[" << client_id << "]: " << time << endl;
 }
 
 string StatsCollector::getMonitoredCommands(){

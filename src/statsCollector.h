@@ -31,8 +31,10 @@ public:
     void emitTimeToRecoverLog(simtime_t time_to_update_log, int server_index);
     void emitConsensunsMessges();
     void emitCommittedMessages(int command_id, int messages_exchanged_to_commit, simtime_t command_issued_messages_count_at_timestamp);
+    void emitCommandTimeResponse(simtime_t time, int client_id);
     void increase_exchanged_messages();
     void committedEntry(int command_id);
+    void consensusMessagesIncrement(int nb_messages = 1);
     string getMonitoredCommands();
     
 protected:

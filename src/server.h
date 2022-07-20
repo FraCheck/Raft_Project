@@ -5,7 +5,7 @@
 #include <map>
 
 #include "utils/log_entry.h"
-
+#include "statsCollector.h"
 using namespace omnetpp;
 using namespace std;
 
@@ -73,6 +73,7 @@ public:
     int getLastLogTerm();
     int getLastLogIndex();
     int getServerNodeVectorSize();
+    StatsCollector* getStatsCollectorRef();
 
 private:
     // Message to trigger the election timeout

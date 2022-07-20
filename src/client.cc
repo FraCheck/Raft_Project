@@ -14,9 +14,6 @@ void Client::initialize() {
     sendCommandEvent = new cMessage("SendCommandEvent");
     resendCommandEvent = new cMessage("ResendCommandEvent");
     scheduleSendCommand();
-
-    // Signals registering
-    commandResponseTimeSignal = registerSignal("commandResponseTime");
 }
 
 void Client::finish() {
@@ -88,8 +85,15 @@ void Client::cancelResendCommandTimeout() {
 }
 
 void Client::emitCommandTimeResponseSignal() {
-    emit(commandResponseTimeSignal, simTime() - commandTimestamp);
-    EV << "[Client" << getParentModule()->getIndex() << "] Emitted command execution response time: " << simTime() - commandTimestamp << endl;
+    cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+    StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+    if (statsCollector == nullptr)
+    {
+        throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+    }
+    if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+        statsCollector->emitCommandTimeResponse(simTime() - commandTimestamp, getParentModule()->getIndex());
+
 }
 
 void Client::sendToStatsCollector(cMessage *msg){
