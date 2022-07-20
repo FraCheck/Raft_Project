@@ -150,8 +150,10 @@ void Server::handleMessage(cMessage *msg) {
         rescheduleElectionTimeout();
         crashed = false;
         scheduleCrash();
-        ServerRecovering *server_recovered = new ServerRecovering(getParentModule()->getIndex(),getLastLogIndex());
-        sendToStatsCollector(server_recovered);
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+            ServerRecovering *server_recovered = new ServerRecovering(getParentModule()->getIndex(),getLastLogIndex());
+            sendToStatsCollector(server_recovered);
+        }
         return;
     }
 
@@ -172,8 +174,10 @@ void Server::handleMessage(cMessage *msg) {
         } else
 
         if (msg == electionTimeoutEvent) {
-            ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
-            sendToStatsCollector(failed);
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+                ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
+                sendToStatsCollector(failed);
+            }
             startElection();
             if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
                 getStatsCollectorRef()->consensusMessagesIncrement(nbOfServers-1);
@@ -269,7 +273,6 @@ void Server::startElection() {
 
 void Server::sendToStatsCollector(cMessage *msg){
     if(!test){
-        if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
             send(msg, "toStatsCollector");
     }
 }

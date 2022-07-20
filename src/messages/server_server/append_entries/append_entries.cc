@@ -65,8 +65,10 @@ void AppendEntries::handleOnServer(Server *server) const {
 
         if (!alreadyAppended){
             server->log->append(entries[i]);
-            ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), server->getLastLogIndex(),entries[i].commandId);
-            server->sendToStatsCollector(serverLogUpdate);
+            if (!(server->getParentModule()->getParentModule()->par("disableStatsCollector"))){
+                ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), server->getLastLogIndex(),entries[i].commandId);
+                server->sendToStatsCollector(serverLogUpdate);
+            }
         }
         
     }

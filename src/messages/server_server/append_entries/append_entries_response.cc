@@ -57,10 +57,11 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
         AddCommandResponse *response = new AddCommandResponse(true,
                 server->getParentModule()->getIndex(), logEntry.commandId);
         server->send(response, "toclients", logEntry.clientId);
-
-        // Update the StatsCollector with the current last commited index of the leader
-        ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), logIndex, logEntry.commandId);
-        server->sendToStatsCollector(serverLogUpdate);
+        if (!(server->getParentModule()->getParentModule()->par("disableStatsCollector"))){
+            // Update the StatsCollector with the current last commited index of the leader
+            ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), logIndex, logEntry.commandId);
+            server->sendToStatsCollector(serverLogUpdate);
+        }
     }
 }
 

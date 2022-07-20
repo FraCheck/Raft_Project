@@ -37,9 +37,10 @@ void Client::handleMessage(cMessage *msg) {
             cancelResendCommandTimeout();
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
-            
-            // Inform the StatsCollector of a new AddCommand request
-            sendToStatsCollector(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()));
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+                // Inform the StatsCollector of a new AddCommand request
+                sendToStatsCollector(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()));
+            }
         } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
@@ -97,9 +98,7 @@ void Client::emitCommandTimeResponseSignal() {
 }
 
 void Client::sendToStatsCollector(cMessage *msg){
-    if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
         send(msg, "toStatsCollector");
-    }
 }
 
 string Client::buildRandomString(int length) {

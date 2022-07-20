@@ -42,6 +42,8 @@ void StatsCollector::handleMessage(cMessage *msg) {
         string list = getMonitoredCommands();
         EV << "New commands list being monitored: " << list << endl;
 
+        cancelAndDelete(msg);
+        return;
 
     }
 
