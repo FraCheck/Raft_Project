@@ -13,7 +13,7 @@ simple Server
         volatile double crashTimeoutAvg @unit(s) = default(3s);
         double recoverTimeoutAvg @unit(s) = default(0.5s);
         bool test= default(false);
-        string test_type;
+        string test_type = default("no_test");
 
     gates:
         input in[];
