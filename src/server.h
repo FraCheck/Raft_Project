@@ -88,8 +88,8 @@ private:
 
     // Messages to trigger the server crash and recovery
     // (useless if canCrash = false)
-    cMessage *crashEvent;
-    cMessage *recoverEvent;
+    cMessage *crashEvent = nullptr;
+    cMessage *recoverEvent = nullptr;
 
     void scheduleCrash();
     void scheduleRecover();

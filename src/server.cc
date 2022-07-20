@@ -269,8 +269,8 @@ void Server::startElection() {
 
 void Server::sendToStatsCollector(cMessage *msg){
     if(!test){
-    if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
-        send(msg, "toStatsCollector");
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+            send(msg, "toStatsCollector");
     }
 }
 
@@ -288,15 +288,15 @@ void Server::cancelHeartbeat() {
 
 void Server::rescheduleElectionTimeout() {
     if(!test){
-    cancelEvent(electionTimeoutEvent);
-    simtime_t electionTimeout = par("electionTimeout");
-    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+        cancelEvent(electionTimeoutEvent);
+        simtime_t electionTimeout = par("electionTimeout");
+        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     }
 }
 
 void Server::stopElectionTimeout() {
     if(!test){
-    cancelEvent(electionTimeoutEvent);
+        cancelEvent(electionTimeoutEvent);
     }
 }
 
@@ -308,6 +308,7 @@ void Server::scheduleCrash() {
 void Server::scheduleRecover() {
     simtime_t recoverTimeout = exponential(par("recoverTimeoutAvg").doubleValue());
     scheduleAt(simTime() + recoverTimeout, recoverEvent);
+    EV << "Scheduled recover time in " << recoverTimeout << " seconds." << endl;
 }
 
 void Server::broadcast(cMessage *msg) {
