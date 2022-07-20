@@ -25,10 +25,11 @@ void Mock::initialize() {
     vector<LogEntry> log  ={};
     LogEntry entry1 = new LogEntry(1,"hi",1,1,1);
     log.push_back(entry1);
-    msg = new AppendEntries("AppendEntries",1,1,0,0,log,2);
+    msg = new AppendEntries("AppendEntries",2,1,2,2,log,2);
     messages.push_back(msg);
     if(test_type=="append_entries_with_more_entry_in_log")send(msg,"out");
     if(test_type=="all")send(messages.at(testcount),"out");
+
 }
 void Mock::handleMessage(cMessage *msg) {
     string actual_test_type;
@@ -68,6 +69,7 @@ void Mock::handleMessage(cMessage *msg) {
         testcount++;
         send(new EndTest(tests.at(testcount)),"out");
         send(messages.at(testcount),"out");
+
     }
     }
 }

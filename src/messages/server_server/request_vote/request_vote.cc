@@ -5,8 +5,10 @@ void RequestVote::handleOnServer(Server *server) const {
     // "Each server will vote for at most one candidate in a given term,
     // on a first come-first-served-basis"
     // Signal to StatsCollector that a new message is being exchanged in the network
+    if(!server->test){
     if (!(server->getParentModule()->getParentModule()->par("disableStatsCollector")))
         server->getStatsCollectorRef()->consensusMessagesIncrement();
+    }
 
     // Reject requests if the server has already voted
     if (server->votedFor != -1 && server->votedFor != this->candidateId) {

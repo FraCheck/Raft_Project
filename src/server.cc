@@ -179,8 +179,10 @@ void Server::handleMessage(cMessage *msg) {
                 sendToStatsCollector(failed);
             }
             startElection();
+            if(!test){
             if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
                 getStatsCollectorRef()->consensusMessagesIncrement(nbOfServers-1);
+            }
         }
         return;
     }
@@ -242,9 +244,11 @@ void Server::handleMessage(cMessage *msg) {
     }
 
     if (dynamic_cast<AddCommand*>(msg) == nullptr){
+        if(!test){
         StatsCollector *statsCollector = getStatsCollectorRef();
         if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
             statsCollector->increase_exchanged_messages();
+        }
     }
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
