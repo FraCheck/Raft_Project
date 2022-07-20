@@ -16,12 +16,14 @@ public:
 
     simsignal_t commandResponseTimeSignal;
     simtime_t commandTimestamp;
-
+    
+    void sendToStatsCollector(cMessage *msg);
     void scheduleSendCommand();
     void cancelSendCommandTimeout();
     void scheduleResendCommand();
     void cancelResendCommandTimeout();
     void emitCommandTimeResponseSignal();
+    
 
 protected:
     virtual void initialize() override;

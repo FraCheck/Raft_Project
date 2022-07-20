@@ -7,17 +7,20 @@
 class ServerLogUpdate: public HandableMessage {
     int serverIndex;
     int server_log_index;
+    int command_id;
 public:
-    ServerLogUpdate(int serverIndex,int server_log_index) {
+    ServerLogUpdate(int serverIndex,int server_log_index, int command_id) {
         cMessage::setName("ServerLogUpdate");
         this->serverIndex = serverIndex;
         this->server_log_index = server_log_index;
+        this->command_id = command_id;
     }
 
     void handleOnStatsCollector(StatsCollector *statsCollector) const override {
        if (serverIndex == statsCollector->currentLeader){
             // log update commited for the leader
             statsCollector->leader_last_log_index = server_log_index;
+            statsCollector->committedEntry(command_id);
        }else{
             // log update from a server
             if ((serverIndex < 0) || (serverIndex > (statsCollector->numberOfServers)-1))
@@ -27,9 +30,7 @@ public:
             if (statsCollector->recoveryServersStatus[serverIndex]->isRecovering == true){
                 statsCollector->recoveryServersStatus[serverIndex]->server_log_index = server_log_index;
 
-                if (server_log_index >= statsCollector->leader_last_log_index){
-                    EV << "server_log_index = " << server_log_index << endl;
-                    EV << "leader_last_log_index = " << statsCollector->leader_last_log_index << endl;
+                if (server_log_index >= statsCollector->leader_last_log_index){                   
                     // Server is now up to date
                     statsCollector->recoveryServersStatus[serverIndex]->isRecovering = false;
                     statsCollector->emitTimeToRecoverLog(simTime() - statsCollector->recoveryServersStatus[serverIndex]->recovery_start_timestamp,serverIndex);
@@ -43,7 +44,7 @@ public:
     ;
 
     cMessage* dup() const override {
-        return new ServerLogUpdate(this->serverIndex, this->server_log_index);
+        return new ServerLogUpdate(this->serverIndex, this->server_log_index, this->command_id);
     }
 };
 

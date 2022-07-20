@@ -25,7 +25,8 @@ public:
             if (statsCollector->is_election_ongoing == false) {
                 statsCollector->is_election_ongoing = true;
                 statsCollector->leader_failed = simTime();
-                EV << "[StatsCollector] - Leader crashed: elections metrics are now monitored.";
+                statsCollector->consensusMessagesIncrement(statsCollector->numberOfServers - 1);
+                EV << "[StatsCollector] - Leader crashed: elections metrics are now monitored." << endl;
             }
         }
     }

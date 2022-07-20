@@ -7,11 +7,12 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
+#include "messages/client_server/add_command.h"
 #include "messages/statsCollector/leader_elected.h"
 #include "messages/statsCollector/server_failure.h"
-#include "messages/statsCollector/consensus_messages.h"
 #include "messages/statsCollector/server_recovering.h"
 #include "utils/printer.h"
+
 
 void Server::refreshDisplay() const {
     if(test)return;
@@ -174,8 +175,8 @@ void Server::handleMessage(cMessage *msg) {
             ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
             sendToStatsCollector(failed);
             startElection();
-            ConsensusMessages *reqVotes = new ConsensusMessages(nbOfServers-1);
-            sendToStatsCollector(reqVotes);
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+                getStatsCollectorRef()->consensusMessagesIncrement(nbOfServers-1);
         }
         return;
     }
@@ -236,6 +237,11 @@ void Server::handleMessage(cMessage *msg) {
         }
     }
 
+    if (dynamic_cast<AddCommand*>(msg) == nullptr){
+        StatsCollector *statsCollector = getStatsCollectorRef();
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+            statsCollector->increase_exchanged_messages();
+    }
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
 
@@ -325,7 +331,17 @@ int Server::getLastLogIndex() {
 int Server::getServerNodeVectorSize(){
     return getParentModule()->getVectorSize();
 }
-void Server:: initializefortest(){
+
+StatsCollector* Server::getStatsCollectorRef(){
+    cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+        StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+        if (statsCollector == nullptr)
+        {
+            throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+        }
+    return statsCollector;
+}
+void Server::initializefortest(){
     if(test_type=="add_command"){
        log = new LogEntryVector(getParentModule()->getIndex());
        nextIndex = new int[1];

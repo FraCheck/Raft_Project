@@ -14,9 +14,6 @@ void Client::initialize() {
     sendCommandEvent = new cMessage("SendCommandEvent");
     resendCommandEvent = new cMessage("ResendCommandEvent");
     scheduleSendCommand();
-
-    // Signals registering
-    commandResponseTimeSignal = registerSignal("commandResponseTime");
 }
 
 void Client::finish() {
@@ -40,6 +37,9 @@ void Client::handleMessage(cMessage *msg) {
             cancelResendCommandTimeout();
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
+            
+            // Inform the StatsCollector of a new AddCommand request
+            sendToStatsCollector(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()));
         } else if (msg == resendCommandEvent) {
             int serverindex = uniform(0, numberOfServers - 1);
             send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
@@ -85,8 +85,21 @@ void Client::cancelResendCommandTimeout() {
 }
 
 void Client::emitCommandTimeResponseSignal() {
-    emit(commandResponseTimeSignal, simTime() - commandTimestamp);
-    EV << "[Client" << getParentModule()->getIndex() << "] Emitted command execution response time: " << simTime() - commandTimestamp << endl;
+    cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+    StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+    if (statsCollector == nullptr)
+    {
+        throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+    }
+    if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+        statsCollector->emitCommandTimeResponse(simTime() - commandTimestamp, getParentModule()->getIndex());
+
+}
+
+void Client::sendToStatsCollector(cMessage *msg){
+    if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+        send(msg, "toStatsCollector");
+    }
 }
 
 string Client::buildRandomString(int length) {

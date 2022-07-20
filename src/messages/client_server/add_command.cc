@@ -54,6 +54,10 @@ void AddCommand::handleOnServer(Server *server) const {
     delete request;
 }
 
+int AddCommand::getCommandId(){
+    return this->commandId;
+}
+
 void AddCommand::buildAndSendResponse(Server *server, bool result) const {
     AddCommandResponse *response = new AddCommandResponse(result,
             server->currentLeader, commandId);

@@ -5,7 +5,7 @@
 void RequestVoteResponse::handleOnServer(Server *server) const {
     if (server->state == FOLLOWER)
         return;
-    if (!result) {
+    if (!result && server->state != LEADER) {
         server->rescheduleElectionTimeout();
         return;
     }

@@ -25,6 +25,7 @@ public:
     }
 
     void handleOnServer(Server *server) const override;
+    int getCommandId();
 
     cMessage* dup() const override {
         return new AddCommand(commandId, command, clientId);
