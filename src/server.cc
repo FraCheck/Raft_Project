@@ -7,11 +7,14 @@
 #include "messages/server_server/append_entries/append_entries_response.h"
 #include "messages/server_server/request_vote/request_vote.h"
 #include "messages/server_server/request_vote/request_vote_response.h"
+#include "messages/client_server/add_command.h"
+#include "statsCollector.h"
 #include "messages/statsCollector/leader_elected.h"
 #include "messages/statsCollector/server_failure.h"
 #include "messages/statsCollector/consensus_messages.h"
 #include "messages/statsCollector/server_recovering.h"
 #include "utils/printer.h"
+
 
 void Server::refreshDisplay() const {
     if(test)return;
@@ -236,6 +239,16 @@ void Server::handleMessage(cMessage *msg) {
         }
     }
 
+    if (dynamic_cast<AddCommand*>(msg) == nullptr){
+        cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+        StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+        if (statsCollector == nullptr)
+        {
+            throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+        }
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+            statsCollector->increase_exchanged_messages();
+    }
     HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
     handableMsg->handleOnServer(this);
 

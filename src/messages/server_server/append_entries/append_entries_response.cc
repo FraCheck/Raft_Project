@@ -59,7 +59,7 @@ void AppendEntriesResponse::handleOnServer(Server *server) const {
         server->send(response, "toclients", logEntry.clientId);
 
         // Update the StatsCollector with the current last commited index of the leader
-        ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), logIndex);
+        ServerLogUpdate *serverLogUpdate = new ServerLogUpdate(server->getParentModule()->getIndex(), logIndex, logEntry.commandId);
         server->sendToStatsCollector(serverLogUpdate);
     }
 }

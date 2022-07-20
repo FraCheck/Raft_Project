@@ -36,6 +36,7 @@ simple Client
     gates:
         input in[];
         output out[];
+        output toStatsCollector;
 }
 
 simple StatsCollector
@@ -46,12 +47,16 @@ simple StatsCollector
         @signal[consensusTime](type="simtime_t");
         @signal[consensusMessages](type="long");
         @signal[timeToRecoverLog](type="simtime_t");
+        @signal[commitMessages](type="long");
         @statistic[consensusTime](title="Time required to reach consensus on a new leader, since network is leaderless"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
         @statistic[consensusMessages](title="Number of messages exchanged on the network to reach consensus among servers"; record=vector,max,mean; interpolationmode=linear);
         @statistic[timeToRecoverLog](title="Time required for a server to recover its log to the most up to date version possible"; unit=s; record=vector,mean,max,min; interpolationmode=linear);
+        @statistic[commitMessages](title="Number of messages exchanged on the network to commit a command in the log"; record=vector,max,mean; interpolationmode=linear);
 
-        gates:
+    gates:
         input in[];
+        input in_clients[];
+
 }
 
 simple DelayQueue
@@ -81,6 +86,7 @@ module ServerNode
         output port_out[];
         output port_toclients[];
         output port_toStatsCollector;
+
     submodules:
         server: Server {
             @display("p=180,142");
@@ -134,6 +140,7 @@ module ClientNode
     gates:
         input port_in[];
         output port_out[];
+        output port_toStatsCollector;
 
         // To implement in case of new statistics that involve the StatsCollector
         //output port_toStatsCollector;
@@ -149,7 +156,7 @@ module ClientNode
     connections:
         // To implement in case of new statistics that involve the StatsCollector
         // Client to StatsCollector
-        // client.toStatsCollector --> port_toStatsCollector;
+        client.toStatsCollector --> port_toStatsCollector;
 
         // Client to queues_servers
         for i=0..sizeof(port_out)-1 {
@@ -212,8 +219,13 @@ network Raft
             server_node[i].port_out++ --> Channel --> server_node[j].port_in++;
             server_node[i].port_in++ <-- Channel <-- server_node[j].port_out++;
         }
+
         for i=0..numServers-1 {
             server_node[i].port_toStatsCollector --> StatsCollectorChannel --> statsCollector.in++;
+        }
+
+        for i=0..numClients-1 {
+            client_node[i].port_toStatsCollector --> StatsCollectorChannel --> statsCollector.in_clients++;
         }
 
         for i=0..numClients-1, for j=0..numServers-1 {
