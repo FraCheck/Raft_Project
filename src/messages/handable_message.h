@@ -4,6 +4,7 @@
 #include "omnetpp.h"
 #include "../server.h"
 #include "../client.h"
+#include "../statsCollector.h"
 
 using namespace omnetpp;
 
@@ -15,10 +16,9 @@ public:
     virtual void handleOnClient(Client *client) const {
     }
     ;
-
-    void finish() {
-        delete this;
+    virtual void handleOnStatsCollector(StatsCollector *statsCollector) const {
     }
+    ;
 };
 
 #endif

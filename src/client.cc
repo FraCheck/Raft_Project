@@ -1,71 +1,104 @@
 #include <ctime>
 #include <random>
+
 #include "client.h"
-#include "messages/add_command/add_command.h"
+#include "messages/client_server/add_command.h"
+#include "utils/unique_id.h"
 
 void Client::initialize() {
-    numberOfServers = par("numServers");
-    numberOfRequests = 0;
+    numberOfServers = getParentModule()->getParentModule()->par("numServers");
+    channel_omission_probability = getParentModule()->getParentModule()->par("channel_omission_probability");
     resendCommandPeriod = par("resendCommandTimeout");
-    sendCommandPeriod = par("sendCommandTimeout");
+    sendCommandPeriod = par("sendCommandTimeout").doubleValue();
+
+    sendCommandEvent = new cMessage("SendCommandEvent");
+    resendCommandEvent = new cMessage("ResendCommandEvent");
     scheduleSendCommand();
 }
 
 void Client::finish() {
+    cancelAndDelete(sendCommandEvent);
+    cancelAndDelete(resendCommandEvent);
 }
 
 void Client::handleMessage(cMessage *msg) {
-    EV << "client index is " << getIndex() << endl;
-
+    // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == sendCommandEvent) {
+            commandTimestamp = simTime();
             // Select randomly the recipient
-            int serverindex = uniform(0, numberOfServers);
+            int serverindex = uniform(0, numberOfServers - 1);
 
-            // Generate the requestId
-            // unique id from 2 numbers x,y -> z z -> x,y  z = (x+y)(x+y+1)/2 + y
-            // good if client doesn't crash , if it crashes it is necessary to give him a new index, or  another unique serial number algorithm that supports failures has to be implemented
-            lastRequestId = (getIndex() + numberOfRequests)
-                    * (getIndex() + numberOfRequests + 1) / 2;
-
+            lastCommandId = UniqueID().id;
             lastCommand = buildRandomString(5);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
                     serverindex);
-            resendCommandEvent = new cMessage("ResendCommandEvent");
-            numberOfRequests++;
+            
+            cancelResendCommandTimeout();
             simtime_t resendCommandTimeout = resendCommandPeriod;
             scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
-        }
-
-        if (msg == resendCommandEvent) {
-            int serverindex = uniform(0, numberOfServers);
-            send(new AddCommand(lastCommand, lastRequestId, getIndex()), "out",
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+                // Inform the StatsCollector of a new AddCommand request
+                sendToStatsCollector(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()));
+            }
+        } else if (msg == resendCommandEvent) {
+            int serverindex = uniform(0, numberOfServers - 1);
+            send(new AddCommand(lastCommandId, lastCommand, getParentModule()->getIndex()), "out",
                     serverindex);
 
-            scheduleResendCommand();
+            scheduleResendCommand();           
         }
-    } else {
-        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-        handableMsg->handleOnClient(this);
+       
+        return;
     }
+    
+    // OMISSIONS OF THE CHANNEL
+    // We simulate channel omissions, randomly deleting messages coming from the network
+    double theshold = 1 - channel_omission_probability;
+    if (uniform(0, 1) > theshold){
+        getParentModule()->bubble("Channel Omission");
+        cancelAndDelete(msg);
+        return;
+    }
+
+    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+    handableMsg->handleOnClient(this);
+
+    cancelAndDelete(msg);
 }
 
 void Client::scheduleSendCommand() {
-    sendCommandEvent = new cMessage("SendCommandEvent");
-
-    simtime_t sendCommandTimeout = sendCommandPeriod;
+    simtime_t sendCommandTimeout = exponential(sendCommandPeriod);
     scheduleAt(simTime() + sendCommandTimeout, sendCommandEvent);
 }
 
-void Client::scheduleResendCommand() {
-    resendCommandEvent = new cMessage("ResendCommandEvent");
+void Client::cancelSendCommandTimeout() {
+    cancelEvent(sendCommandEvent);
+}
 
+void Client::scheduleResendCommand() {
     simtime_t resendCommandTimeout = resendCommandPeriod;
     scheduleAt(simTime() + resendCommandTimeout, resendCommandEvent);
 }
 
 void Client::cancelResendCommandTimeout() {
     cancelEvent(resendCommandEvent);
+}
+
+void Client::emitCommandTimeResponseSignal() {
+    cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+    StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+    if (statsCollector == nullptr)
+    {
+        throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+    }
+    if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+        statsCollector->emitCommandTimeResponse(simTime() - commandTimestamp, getParentModule()->getIndex());
+
+}
+
+void Client::sendToStatsCollector(cMessage *msg){
+        send(msg, "toStatsCollector");
 }
 
 string Client::buildRandomString(int length) {

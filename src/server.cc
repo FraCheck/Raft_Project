@@ -1,102 +1,259 @@
 #include "server.h"
-#include "messages/append_entries/append_entries.h"
-#include "messages/append_entries/append_entries_response.h"
-#include "messages/request_vote/request_vote.h"
-#include "messages/request_vote/request_vote_response.h"
 #include <typeinfo>
 #include <list>
 #include <string>
 
+#include "messages/server_server/append_entries/append_entries.h"
+#include "messages/server_server/append_entries/append_entries_response.h"
+#include "messages/server_server/request_vote/request_vote.h"
+#include "messages/server_server/request_vote/request_vote_response.h"
+#include "messages/client_server/add_command.h"
+#include "messages/statsCollector/leader_elected.h"
+#include "messages/statsCollector/server_failure.h"
+#include "messages/statsCollector/server_recovering.h"
+#include "utils/printer.h"
+
+
+void Server::refreshDisplay() const {
+    if(test)return;
+    ostringstream out;
+    cDisplayString &dispStr = getParentModule()->getDisplayString();
+
+    if (state == FOLLOWER)
+        out << "i=block/circle;";
+    if (state == LEADER)
+        out << "i=block/triangle;";
+    if (state == CANDIDATE)
+        out << "i=block/square;";
+
+    if (crashed)
+        out << "i2=status/stop;";
+
+    if (state == LEADER)
+        out << "t=nextIndex: " << printElements(nextIndex, getParentModule()->getVectorSize())
+                << endl << "matchIndex: "
+                << printElements(matchIndex, getParentModule()->getVectorSize());
+
+    dispStr.parse(out.str().c_str());
+    if (getParentModule()->getParentModule()->par("displayLogs")){
+        ostringstream labelText;
+        labelText << padOut(to_string(getParentModule()->getIndex()), 3)
+                << padOut(to_string(currentTerm), 6)
+                << padOut(to_string(votedFor), 6)
+                << padOut(to_string(commitIndex), 8)
+                << padOut(to_string(lastApplied), 7) << "[" << log->toString()
+                << "]";
+        label->setText(labelText.str().c_str());
+    }else{
+        ostringstream labelText;
+        labelText << padOut(to_string(getParentModule()->getIndex()), 3)
+                << padOut(to_string(currentTerm), 6)
+                << padOut(to_string(votedFor), 6)
+                << padOut(to_string(commitIndex), 8);
+       label->setText(labelText.str().c_str());
+    }
+
+    label->setPosition(cFigure::Point(20, 6 + getParentModule()->getIndex() * 6));
+    label->setFont(cFigure::Font("Courier New"));
+    label->setAnchor(cFigure::ANCHOR_NW);
+
+    cCanvas *canvas = getParentModule()->getParentModule()->getCanvas();
+    if (canvas->findFigure(label) != -1)
+        canvas->removeFigure(label);
+    canvas->addFigure(label);
+}
+
 void Server::initialize() {
-    nextIndex = new int(getVectorSize());
-    matchIndex = new int(getVectorSize());
+    test= par("test");
+    if(test){
+        test_type=par("test_type").stringValue();
+        initializefortest();
+        return;
+    };
     electionTimeoutEvent = new cMessage("electionTimeoutEvent");
-    resendAppendEntryEvent = new cMessage("retryAppendEntryEvent");
+    resendAppendEntryEvent = new cMessage("resendAppendEntryEvent");
     heartbeatEvent = new cMessage("heartbeatEvent");
-    faultywhenleader = par("faultyWhenLeader");
+    log = new LogEntryVector(getParentModule()->getIndex());
+    nextIndex = new int[getServerNodeVectorSize()];
+    matchIndex = new int[getServerNodeVectorSize()];
+    nbOfServers = getParentModule()->getParentModule()->par("numServers");
+    server_failure_probability = par("server_failure_probability");
+    leader_failure_probability = par("leader_failure_Probability");
+    channel_omission_probability = getParentModule()->getParentModule()->par("channel_omission_probability");
+
     rescheduleElectionTimeout();
+
+    canFail = par("canFail");
+    if (canFail) {
+        crashEvent = new cMessage("crashEvent");
+        recoverEvent = new cMessage("recoverEvent");
+
+        scheduleCrash();
+    }
+
     WATCH(currentTerm);
-    WATCH(currentState);
+    WATCH(state);
     WATCH(votedFor);
     WATCH(electionTimeout);
 
+    cLabelFigure *title = new cLabelFigure();
+    title->setText("#  term  vote  commit  apply  logEntries (term-index)");
+    title->setPosition(cFigure::Point(20, 0));
+    title->setFont(cFigure::Font("Courier New"));
+    title->setAnchor(cFigure::ANCHOR_NW);
+
+    cCanvas *canvas = getParentModule()->getParentModule()->getCanvas();
+    canvas->addFigure(title);
 }
 
 void Server::finish() {
-    cancelEvent(electionTimeoutEvent);
-    cancelEvent(resendAppendEntryEvent);
-    cancelEvent(heartbeatEvent);
-    EV << "[Server" << getIndex() << "] Votes count is " << votesCount << endl;
+    delete[] nextIndex;
+    delete[] matchIndex;
+    if(!test){
+    cancelAndDelete(electionTimeoutEvent);
+    cancelAndDelete(heartbeatEvent);
+    cancelAndDelete(recoverEvent);
+    cancelAndDelete(resendAppendEntryEvent);
+    cancelAndDelete(crashEvent);
+    log->clear();
+    }
+
 }
 
 void Server::handleMessage(cMessage *msg) {
-    if (crashed) {
-        delete msg;
+    if (msg == crashEvent) {
+        double theshold = state == LEADER ? 1-leader_failure_probability : 1-server_failure_probability;
+        if (uniform(0, 1) > theshold){
+            cancelEvent(crashEvent);
+            scheduleCrash();
+            return;
+        }
+
+            votedFor = -1;
+            votesCount = 0;
+            state = FOLLOWER;
+            currentLeader= -1;
+
+        getParentModule()->bubble("CRASHED");
+        EV << "[Server" << getParentModule()->getIndex() << "] just crashed." << endl;
+        crashed = true;
+        cancelEvent(crashEvent);
+        cancelEvent(heartbeatEvent);
+        cancelEvent(electionTimeoutEvent);
+        scheduleRecover();
+
         return;
     }
 
+    if (msg == recoverEvent) {
+        getParentModule()->bubble("RECOVERED");
+        rescheduleElectionTimeout();
+        crashed = false;
+        scheduleCrash();
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+            ServerRecovering *server_recovered = new ServerRecovering(getParentModule()->getIndex(),getLastLogIndex());
+            sendToStatsCollector(server_recovered);
+        }
+        return;
+    }
+
+    if (crashed) {
+        delete (msg);
+        return;
+    }
+
+    // *** SELF-MESSAGES ***
     if (msg->isSelfMessage()) {
         if (msg == heartbeatEvent) {
-            std::list<LogEntry> empty_log = { };
             AppendEntries *heartbeat = new AppendEntries("Heartbeat",
-                    currentTerm, getIndex(), getLastLogIndex(),
-                    getLastLogTerm(), empty_log, commitIndex);
+                    currentTerm, getParentModule()->getIndex(), getLastLogIndex(),
+                    getLastLogTerm(), { }, commitIndex);
             broadcast(heartbeat);
-
-            // Test what happens if a leader do not send HeartBeats to other servers anymore
-            if (faultywhenleader && uniform(0, 1) > 0.7) {
-                bubble("definitely crashed");
-                crashed = true;
-                return;
-            }
-
             scheduleHeartbeat();
-            return;
-        }
+            delete heartbeat;
+        } else
 
         if (msg == electionTimeoutEvent) {
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector"))){
+                ServerFailure *failed = new ServerFailure(true,currentTerm + 1);
+                sendToStatsCollector(failed);
+            }
             startElection();
-            return;
+            if(!test){
+            if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+                getStatsCollectorRef()->consensusMessagesIncrement(nbOfServers-1);
+            }
         }
+        return;
+    }
 
-        // Re-send to all servers the log they need
-        // in order to be consistent with the leader
-        if (msg == resendAppendEntryEvent) {
+    // *** EXTERNAL MESSAGES ***
+    // All messages from this point on are sent from other servers/clients
 
-            bool allserversconsistent = true;
-            for (int serverindex = 0; serverindex < gateSize("out");
-                    serverindex++) {
-                if (log.size() >= nextIndex[serverindex]) {
-                    allserversconsistent = false;
-                    list<LogEntry>::iterator it = log.begin();
-                    advance(it, nextIndex[serverindex] - 1);
-                    list<LogEntry> tosend = { *it };
-                    send(
-                            new AppendEntries("AppendEntries", currentTerm,
-                                    getIndex(), getLastLogIndex(),
-                                    getLastLogTerm(), tosend, commitIndex),
-                            "out", serverindex);
-                }
-            }
-            if (!allserversconsistent) { //retry appendentries until all servers are consistent with the log of the leader
+    // OMISSIONS OF THE CHANNEL
+    // We simulate channel omissions, randomly deleting messages coming from the network
+    double theshold =  1-channel_omission_probability;
+    if (uniform(0, 1) > theshold){
+        getParentModule()->bubble("Channel Omission");
+        EV << "[Server " << getParentModule()->getIndex() << "] Message not received because of channel omission."<<endl;
+        cancelAndDelete(msg);
+        return;
+    }
 
-                simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
-                scheduleAt(simTime() + appendEntryPeriod,
-                        resendAppendEntryEvent);
-            }
+    // Generic behavior for RPC messages
+    if (dynamic_cast<RPC*>(msg) != nullptr) {
+        RPC *rpc = check_and_cast<RPC*>(msg);
+
+        // If commitIndex > lastApplied: increment lastApplied, apply
+        // log[lastApplied] to state machine
+        if (commitIndex > lastApplied)
+            lastApplied++;
+
+        // "If RPC request or response contains term T > currentTerm:
+        // set currentTerm = T, convert to follower"
+        if (rpc->term > currentTerm) {
+            currentTerm = rpc->term;
+            votedFor = -1;
+            votesCount = 0;
+
+            if (state == LEADER)
+                cancelHeartbeat();
+            state = FOLLOWER;
+        }
+    }
+
+
+
+    // Generic behavior for RPCRequest messages
+    if (dynamic_cast<RPCRequest*>(msg) != nullptr) {
+        RPCRequest *rpc = check_and_cast<RPCRequest*>(msg);
+
+        stopElectionTimeout();
+        if (state != LEADER)
+            rescheduleElectionTimeout();
+
+        // "If a server receives a request with a stale term
+        // number, it rejects the request"
+        if (rpc->term < currentTerm) {
+            AppendEntriesResponse *response = new AppendEntriesResponse(
+                        currentTerm, false, true, getLastLogIndex());
+                send(response, "out", msg->getArrivalGate()->getIndex());
+            cancelAndDelete(msg);
             return;
         }
     }
 
-    else {
-
-        HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
-        handableMsg->handleOnServer(this);
+    if (dynamic_cast<AddCommand*>(msg) == nullptr){
+        if(!test){
+        StatsCollector *statsCollector = getStatsCollectorRef();
+        if (!(getParentModule()->getParentModule()->par("disableStatsCollector")))
+            statsCollector->increase_exchanged_messages();
+        }
     }
-    EV << "[Server" << getIndex() << "] Message received from Server"
-              << msg->getSenderModule()->getIndex() << " ~ " << msg->getName()
-              << endl;
+    HandableMessage *handableMsg = check_and_cast<HandableMessage*>(msg);
+    handableMsg->handleOnServer(this);
 
+    cancelAndDelete(msg);
 }
 
 void Server::startElection() {
@@ -104,21 +261,31 @@ void Server::startElection() {
     scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
     currentTerm = currentTerm + 1;
     votesCount = 0; // Reset votes count from previous election
-    EV << "[Server" << getIndex() << "] Start election at " << simTime()
+
+    EV << "[Server" << getParentModule()->getIndex() << "] Start election at " << simTime()
               << " , term = " << currentTerm << endl;
 
-    currentState = CANDIDATE;
+    state = CANDIDATE;
     votesCount++;
-    votedFor = getIndex();
-    RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
-            getIndex(), getLastLogIndex(), getLastLogTerm());
+    votedFor = getParentModule()->getIndex();
 
-    // cMessage *mextobroadcast = &requestvote;
+    RequestVote *requestvote = new RequestVote("RequestVote", currentTerm,
+            getParentModule()->getIndex(), getLastLogIndex(), getLastLogTerm());
     broadcast(requestvote);
+    delete requestvote;
+}
+
+void Server::sendToStatsCollector(cMessage *msg){
+    if(!test){
+            send(msg, "toStatsCollector");
+    }
 }
 
 void Server::scheduleHeartbeat() {
+    cancelEvent(heartbeatEvent);
     simtime_t heartbeatPeriod = par("heartbeatPeriod");
+    // EV << "SIMULATION TIMES TEST, heartbeatPeriod: "<<heartbeatPeriod<< "   || simTime():  " << simTime() << "   ||SUM: "<< simTime() + heartbeatPeriod ;
+
     scheduleAt(simTime() + heartbeatPeriod, heartbeatEvent);
 }
 
@@ -127,21 +294,28 @@ void Server::cancelHeartbeat() {
 }
 
 void Server::rescheduleElectionTimeout() {
-    cancelEvent(electionTimeoutEvent);
-    simtime_t electionTimeout = par("electionTimeout");
-    scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    if(!test){
+        cancelEvent(electionTimeoutEvent);
+        simtime_t electionTimeout = par("electionTimeout");
+        scheduleAt(simTime() + electionTimeout, electionTimeoutEvent);
+    }
 }
 
 void Server::stopElectionTimeout() {
-    cancelEvent(electionTimeoutEvent);
+    if(!test){
+        cancelEvent(electionTimeoutEvent);
+    }
 }
 
-void Server::scheduleResendAppendEntries() {
-    simtime_t appendEntryPeriod = par("retryAppendEntriesPeriod");
-    scheduleAt(simTime() + appendEntryPeriod, resendAppendEntryEvent);
+void Server::scheduleCrash() {
+    simtime_t crashTimeout = exponential(par("crashTimeoutAvg").doubleValue());
+    scheduleAt(simTime() + crashTimeout, crashEvent);
 }
-void Server::cancelResendAppendEntries() {
-    cancelEvent(resendAppendEntryEvent);
+
+void Server::scheduleRecover() {
+    simtime_t recoverTimeout = exponential(par("recoverTimeoutAvg").doubleValue());
+    scheduleAt(simTime() + recoverTimeout, recoverEvent);
+    EV << "Scheduled recover time in " << recoverTimeout << " seconds." << endl;
 }
 
 void Server::broadcast(cMessage *msg) {
@@ -149,25 +323,93 @@ void Server::broadcast(cMessage *msg) {
         send(msg->dup(), "out", i);
 }
 
-int Server::getLastLogIndex() {
-    int lastlogindex;
-
-    if (log.empty())
-        lastlogindex = 0;
-    else {
-        LogEntry lastentry = log.front();
-        lastlogindex = log.size();
-    }
-    return lastlogindex;
-}
 int Server::getLastLogTerm() {
-    int lastlogterm;
-    if (log.empty())
-        lastlogterm = 0;
-    else {
-        LogEntry lastentry = log.front();
-        lastlogterm = lastentry.getLogterm();
-    }
-    return lastlogterm;
+    if (log->size() == 0)
+        return 0;
+
+    return log->getLast().term;
 }
 
+int Server::getLastLogIndex() {
+    if (log->size() == 0)
+        return 0;
+     return log->getLast().index;
+}
+
+int Server::getServerNodeVectorSize(){
+    return getParentModule()->getVectorSize();
+}
+
+StatsCollector* Server::getStatsCollectorRef(){
+    cModule *ref = getParentModule()->getParentModule()->getSubmodule("statsCollector");
+        StatsCollector *statsCollector = check_and_cast<StatsCollector *>(ref);
+        if (statsCollector == nullptr)
+        {
+            throw invalid_argument("Cannot retrieve toStatsCollector Module ");
+        }
+    return statsCollector;
+}
+void Server::initializefortest(){
+    if(test_type=="add_command"){
+       log = new LogEntryVector(getParentModule()->getIndex());
+       nextIndex = new int[1];
+       matchIndex = new int[1];
+       nextIndex[0] = 1;
+       matchIndex[0] = 0;
+       currentTerm=1;
+       state= LEADER;
+       nbOfServers = 2;
+    }
+    else if(test_type=="append_entries_response_false"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+        LogEntry entry1 = new LogEntry(1,"hi",1,1,1);
+        log->append(entry1);
+        LogEntry entry2 = new LogEntry(2,"hello",2,1,2);
+                log->append(entry2);
+                LogEntry entry3 = new LogEntry(1,"hellow",3,1,3);
+                                log->append(entry3);
+               nextIndex = new int[1];
+               matchIndex = new int[1];
+               nextIndex[0] = 3;
+               matchIndex[0] = 0;
+               currentTerm=2;
+               state= LEADER;
+               nbOfServers = 2;
+    }
+    else if(test_type=="request_vote_to_candidate"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+        electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+              nextIndex = new int[1];
+              matchIndex = new int[1];
+              nextIndex[0] = 1;
+              matchIndex[0] = 0;
+              currentTerm=1;
+              votedFor=1;
+              state= CANDIDATE;
+              nbOfServers = 2;
+    }
+    else if(test_type=="request_vote_to_candidate_stale_term"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+               electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+                     nextIndex = new int[1];
+                     matchIndex = new int[1];
+                     nextIndex[0] = 1;
+                     matchIndex[0] = 0;
+                     currentTerm=1;
+                     votedFor=1;
+                     state= CANDIDATE;
+                     nbOfServers = 2;
+    }
+    else if(test_type=="append_entries_with_more_entry_in_log"){
+        log = new LogEntryVector(getParentModule()->getIndex());
+                       electionTimeoutEvent = new cMessage("electionTimeoutEvent");
+                             nextIndex = new int[1];
+                             matchIndex = new int[1];
+                             nextIndex[0] = 0;
+                             matchIndex[0] = 0;
+                             currentTerm=2;
+                             votedFor=-1;
+                             state= FOLLOWER;
+                             nbOfServers = 2;
+    }
+}

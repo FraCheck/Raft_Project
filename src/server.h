@@ -2,8 +2,10 @@
 #define SERVER_H_
 
 #include <omnetpp.h>
-#include "utils/log_entry.h"
 #include <map>
+
+#include "utils/log_entry.h"
+#include "statsCollector.h"
 using namespace omnetpp;
 using namespace std;
 
@@ -13,9 +15,9 @@ enum ServerState {
 
 class Server: public cSimpleModule {
 public:
-    ServerState currentState = FOLLOWER;
+    ServerState state = FOLLOWER;
 
-    // *** PERSISTENT STATE ***
+    // *** PERSISTENT STATE ON ALL SERVERS ***
     // (Updated on stable storage before responding to RPCs)
 
     // Latest term "seen" by the server (increases monotonically)
@@ -25,10 +27,9 @@ public:
     int votedFor = -1;
 
     // Log entries
-    list<LogEntry> log = { };
+    LogEntryVector *log;
 
-    // *** VOLATILE STATE ***
-    // (Reinitialized after each election)
+    // *** VOLATILE STATE ON ALL SERVERS ***
 
     // Index of the last log entry known to be committed
     // (increases monotonically)
@@ -38,30 +39,41 @@ public:
     // (increases monotonically)
     int lastApplied = 0;
 
-    // Index of the next log entry to send to that server
+    // *** VOLATILE STATE ON LEADERS ***
+    // (Reinitialized after each election)
+
+    // For each server, index of the next LogEntry to send
     // (initialized to leader last log index + 1)
     int *nextIndex;
 
-    // Index of the last log entry known to be replicated on server(even if not committed )
+    // For each server, index of the last log entry known to be replicated
     // (initialized to 0, increases monotonically)
     int *matchIndex;
 
-    int currentLeader;
+    int currentLeader = -1;
     int votesCount = 0;
-    bool faultywhenleader;
+    bool canFail;
     bool crashed = false;
     simtime_t electionTimeout;
-
+    int nbOfServers;
+    double server_failure_probability;
+    double leader_failure_probability;
+    double channel_omission_probability;
+    bool test;
+    string test_type;
+    
     void startElection();
+    void sendToStatsCollector(cMessage *msg);
     void scheduleHeartbeat();
     void cancelHeartbeat();
     void rescheduleElectionTimeout();
     void stopElectionTimeout();
-    void scheduleResendAppendEntries();
-    void cancelResendAppendEntries();
     void broadcast(cMessage *msg);
+    void initializefortest();
     int getLastLogTerm();
     int getLastLogIndex();
+    int getServerNodeVectorSize();
+    StatsCollector* getStatsCollectorRef();
 
 private:
     // Message to trigger the election timeout
@@ -73,6 +85,17 @@ private:
     // Message to trigger the re-sending of appendentries
     // to all the server not yet consistent with the leader log
     cMessage *resendAppendEntryEvent;
+
+    // Messages to trigger the server crash and recovery
+    // (useless if canCrash = false)
+    cMessage *crashEvent = nullptr;
+    cMessage *recoverEvent = nullptr;
+
+    void scheduleCrash();
+    void scheduleRecover();
+
+    cLabelFigure *label = new cLabelFigure("label");
+    void refreshDisplay() const override;
 
 protected:
     virtual void initialize() override;
